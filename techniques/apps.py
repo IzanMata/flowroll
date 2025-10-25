@@ -2,5 +2,5 @@ from django.apps import AppConfig
 
 
 class TechniquesConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'techniques'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "techniques"
