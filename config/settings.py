@@ -13,9 +13,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -57,11 +60,13 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -92,11 +97,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get("MARIADB_DATABASE", "grappling"),
-        "USER": os.environ.get("MARIADB_USER", "grappling_user"),
-        "PASSWORD": os.environ.get("MARIADB_PASSWORD", "changeme"),
-        "HOST": os.environ.get("MARIADB_HOST", "localhost"),
-        "PORT": os.environ.get("MARIADB_PORT", "3306"),
+        "NAME": os.environ.get("MARIADB_DATABASE"),
+        "USER": os.environ.get("MARIADB_USER"),
+        "PASSWORD": os.environ.get("MARIADB_PASSWORD"),
+        "HOST": os.environ.get("MARIADB_HOST"),
+        "PORT": os.environ.get("MARIADB_PORT"),
         "OPTIONS": {
             "charset": "utf8mb4",
         },

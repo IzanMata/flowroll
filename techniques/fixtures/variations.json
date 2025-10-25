@@ -1,0 +1,47 @@
+[
+  {
+    "model": "techniques.techniquevariation",
+    "pk": 1,
+    "fields": {
+      "technique": 3,
+      "name": "Armbar from Closed Guard",
+      "description": "Llave de brazo desde guardia cerrada"
+    }
+  },
+  {
+    "model": "techniques.techniquevariation",
+    "pk": 2,
+    "fields": {
+      "technique": 3,
+      "name": "Armbar from Open Guard",
+      "description": "Llave de brazo desde guardia abierta"
+    }
+  },
+  {
+    "model": "techniques.techniquevariation",
+    "pk": 3,
+    "fields": {
+      "technique": 4,
+      "name": "Triangle from Closed Guard",
+      "description": "Triángulo desde guardia cerrada"
+    }
+  },
+  {
+    "model": "techniques.techniquevariation",
+    "pk": 4,
+    "fields": {
+      "technique": 2,
+      "name": "Scissor Sweep to Mount",
+      "description": "Barrido tijera que termina en montada"
+    }
+  },
+  {
+    "model": "techniques.techniquevariation",
+    "pk": 5,
+    "fields": {
+      "technique": 5,
+      "name": "Mount Escape to Closed Guard",
+      "description": "Escape desde montada recuperando guardia cerrada"
+    }
+  }
+]

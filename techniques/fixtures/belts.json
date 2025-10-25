@@ -1,0 +1,7 @@
+[
+  { "model": "techniques.belt", "pk": 1, "fields": {"color": "white", "order": 1} },
+  { "model": "techniques.belt", "pk": 2, "fields": {"color": "blue", "order": 2} },
+  { "model": "techniques.belt", "pk": 3, "fields": {"color": "purple", "order": 3} },
+  { "model": "techniques.belt", "pk": 4, "fields": {"color": "brown", "order": 4} },
+  { "model": "techniques.belt", "pk": 5, "fields": {"color": "black", "order": 5} }
+]

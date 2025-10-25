@@ -1,0 +1,37 @@
+[
+  {
+    "model": "techniques.techniquecategory",
+    "pk": 1,
+    "fields": {"name": "Guard", "description": "Técnicas desde guardia"}
+  },
+  {
+    "model": "techniques.techniquecategory",
+    "pk": 2,
+    "fields": {"name": "Sweeps", "description": "Barridos y cambios de posición"}
+  },
+  {
+    "model": "techniques.techniquecategory",
+    "pk": 3,
+    "fields": {"name": "Submissions", "description": "Finalizaciones y llaves"}
+  },
+  {
+    "model": "techniques.techniquecategory",
+    "pk": 4,
+    "fields": {"name": "Positions", "description": "Posiciones de control"}
+  },
+  {
+    "model": "techniques.techniquecategory",
+    "pk": 5,
+    "fields": {"name": "Escapes", "description": "Técnicas de escape"}
+  },
+  {
+    "model": "techniques.techniquecategory",
+    "pk": 6,
+    "fields": {"name": "Transitions", "description": "Transiciones entre posiciones"}
+  },
+  {
+    "model": "techniques.techniquecategory",
+    "pk": 7,
+    "fields": {"name": "Passes", "description": "Pases de guardia"}
+  }
+]

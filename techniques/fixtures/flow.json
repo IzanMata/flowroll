@@ -1,0 +1,42 @@
+[
+  {
+    "model": "techniques.techniqueflow",
+    "pk": 1,
+    "fields": {
+      "from_technique": 1,
+      "to_technique": 2,
+      "description": "Desde Closed Guard hacia Scissor Sweep si el oponente pone peso en la pierna derecha",
+      "probability": 0.8
+    }
+  },
+  {
+    "model": "techniques.techniqueflow",
+    "pk": 2,
+    "fields": {
+      "from_technique": 1,
+      "to_technique": 3,
+      "description": "Desde Closed Guard hacia Armbar si el oponente abre el brazo",
+      "probability": 0.5
+    }
+  },
+  {
+    "model": "techniques.techniqueflow",
+    "pk": 3,
+    "fields": {
+      "from_technique": 2,
+      "to_technique": 4,
+      "description": "Desde Scissor Sweep hacia Triangle si el oponente cae en tu control",
+      "probability": 0.6
+    }
+  },
+  {
+    "model": "techniques.techniqueflow",
+    "pk": 4,
+    "fields": {
+      "from_technique": 5,
+      "to_technique": 1,
+      "description": "Desde Mount Escape hacia Closed Guard si logras recuperar la guardia",
+      "probability": 0.7
+    }
+  }
+]
