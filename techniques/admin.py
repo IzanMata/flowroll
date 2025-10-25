@@ -19,8 +19,7 @@ class TechniqueCategoryAdmin(admin.ModelAdmin):
 @admin.register(Technique)
 class TechniqueAdmin(admin.ModelAdmin):
     list_display = ("name", "difficulty", "min_belt")
-    list_filter = ("categories", "difficulty", "min_belt")
-    search_fields = ("name", "description")
+    list_filter = ("difficulty", "min_belt")
     filter_horizontal = ("categories",)
 
 

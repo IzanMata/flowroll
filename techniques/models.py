@@ -35,11 +35,11 @@ class TechniqueCategory(models.Model):
 
 class Technique(models.Model):
     name = models.CharField(max_length=200)
-    category = models.ManyToManyField(TechniqueCategory, related_name="techniques")
+    categories = models.ManyToManyField("TechniqueCategory", related_name="techniques")
     description = models.TextField(blank=True)
-    difficulty = models.IntegerField(default=1)  # 1-5
+    difficulty = models.IntegerField(default=1)
     min_belt = models.ForeignKey(
-        Belt,
+        "Belt",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
