@@ -1,15 +1,11 @@
-from django.urls import path
+# techniques/urls.py
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import TechniqueViewSet
 
-from . import views
+router = DefaultRouter()
+router.register(r'techniques', TechniqueViewSet)
 
 urlpatterns = [
-    path("techniques/", views.TechniqueListView.as_view(), name="technique-list"),
-    path(
-        "techniques/<int:pk>/",
-        views.TechniqueDetailView.as_view(),
-        name="technique-detail",
-    ),
-    path(
-        "categories/", views.TechniqueCategoryListView.as_view(), name="category-list"
-    ),
+    path('api/', include(router.urls)),
 ]

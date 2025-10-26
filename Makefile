@@ -15,7 +15,11 @@ migrate:
 	$(MANAGE) migrate
 
 load_fixtures:
-	$(MANAGE) loaddata *.json
+	$(MANAGE) loaddata belts.json
+	$(MANAGE) loaddata categories.json
+	$(MANAGE) loaddata techniques.json
+	$(MANAGE) loaddata flows.json
+	$(MANAGE) loaddata variations.json
 	
 run:
 	$(MANAGE) runserver 127.0.0.1:8000

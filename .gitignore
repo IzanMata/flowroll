@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/python,django
-# Edit at https://www.toptal.com/developers/gitignore?templates=python,django
+# Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,django
+# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python,django
 
 ### Django ###
 *.log
@@ -263,4 +263,23 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-# End of https://www.toptal.com/developers/gitignore/api/python,django
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+.ionide
+
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,django
