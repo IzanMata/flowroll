@@ -77,5 +77,8 @@ class TechniqueVariation(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
 
+    class Meta:
+        unique_together = ("technique", "name")
+
     def __str__(self):
         return f"{self.technique.name} → {self.name}"
