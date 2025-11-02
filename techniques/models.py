@@ -47,6 +47,8 @@ class Technique(models.Model):
     )
     image_url = models.URLField(blank=True)
     video_url = models.URLField(blank=True)
+    # created_at = models.DateTimeField(auto_now_add=True)
+    # updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["name"]
