@@ -1,4 +1,4 @@
-from rest_framework import filters, generics, viewsets
+from rest_framework import filters, viewsets
 
 from .models import Belt, Technique, TechniqueCategory
 from .serializers import (BeltSerializer, TechniqueCategorySerializer,
@@ -21,35 +21,5 @@ class TechniqueCategoryViewSet(viewsets.ModelViewSet):
 
 
 class BeltViewSet(viewsets.ModelViewSet):
-    queryset = Belt.objects.all()
-    serializer_class = BeltSerializer
-
-
-class TechniqueListView(generics.ListAPIView):
-    queryset = Technique.objects.all()
-    serializer_class = TechniqueSerializer
-
-
-class TechniqueDetailView(generics.RetrieveAPIView):
-    queryset = Technique.objects.all()
-    serializer_class = TechniqueSerializer
-
-
-class TechniqueCategoryListView(generics.ListAPIView):
-    queryset = TechniqueCategory.objects.all()
-    serializer_class = TechniqueCategorySerializer
-
-
-class TechniqueCategoryDetailView(generics.RetrieveAPIView):
-    queryset = TechniqueCategory.objects.all()
-    serializer_class = TechniqueCategorySerializer
-
-
-class BeltsListView(generics.ListAPIView):
-    queryset = Belt.objects.all()
-    serializer_class = BeltSerializer
-
-
-class BeltDetailView(generics.RetrieveAPIView):
     queryset = Belt.objects.all()
     serializer_class = BeltSerializer
