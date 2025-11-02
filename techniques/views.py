@@ -1,7 +1,8 @@
 from rest_framework import generics, viewsets
 
-from .models import Technique, TechniqueCategory
-from .serializers import TechniqueCategorySerializer, TechniqueSerializer
+from .models import Belt, Technique, TechniqueCategory
+from .serializers import (BeltSerializer, TechniqueCategorySerializer,
+                          TechniqueSerializer)
 
 
 class TechniqueViewSet(viewsets.ModelViewSet):
@@ -27,3 +28,18 @@ class TechniqueDetailView(generics.RetrieveAPIView):
 class TechniqueCategoryListView(generics.ListAPIView):
     queryset = TechniqueCategory.objects.all()
     serializer_class = TechniqueCategorySerializer
+
+
+class TechniqueCategoryDetailView(generics.RetrieveAPIView):
+    queryset = TechniqueCategory.objects.all()
+    serializer_class = TechniqueCategorySerializer
+
+
+class BeltsListView(generics.ListAPIView):
+    queryset = Belt.objects.all()
+    serializer_class = BeltSerializer
+
+
+class BeltDetailView(generics.RetrieveAPIView):
+    queryset = Belt.objects.all()
+    serializer_class = BeltSerializer
