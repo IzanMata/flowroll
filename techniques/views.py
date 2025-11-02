@@ -1,8 +1,8 @@
 from rest_framework import filters, viewsets
 
-from .models import Belt, Technique, TechniqueCategory
+from .models import Belt, Technique, TechniqueCategory, TechniqueVariation
 from .serializers import (BeltSerializer, TechniqueCategorySerializer,
-                          TechniqueSerializer)
+                          TechniqueSerializer, TechniqueVariationSerializer)
 
 
 class TechniqueViewSet(viewsets.ModelViewSet):
@@ -23,3 +23,8 @@ class TechniqueCategoryViewSet(viewsets.ModelViewSet):
 class BeltViewSet(viewsets.ModelViewSet):
     queryset = Belt.objects.all()
     serializer_class = BeltSerializer
+
+
+class TechniqueVariationViewSet(viewsets.ModelViewSet):
+    queryset = TechniqueVariation.objects.select_related("technique")
+    serializer_class = TechniqueVariationSerializer
