@@ -31,6 +31,6 @@ class TechniqueVariationAdmin(admin.ModelAdmin):
 
 @admin.register(TechniqueFlow)
 class TechniqueFlowAdmin(admin.ModelAdmin):
-    list_display = ("from_technique", "to_technique", "probability")
+    list_display = ("from_technique", "to_technique")
     search_fields = ("from_technique__name", "to_technique__name", "description")
     list_filter = ("from_technique", "to_technique")
