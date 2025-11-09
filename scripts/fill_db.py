@@ -2,6 +2,7 @@ import json
 
 import requests
 from bs4 import BeautifulSoup
+from ftfy import fix_text
 
 TECHNIQUE_URLS = [
     ("Americana Armlock", "https://www.blackbeltwiki.com/americana-armlock"),
@@ -58,44 +59,78 @@ TECHNIQUE_URLS = [
 ]
 
 
-# --- Función de ayuda ---
 def get_description(url):
-    """Extrae la descripción principal de una página del BlackBeltWiki."""
+    """Extrae títulos (<strong>) y videos (iframe) de una página de BlackBeltWiki."""
     try:
         headers = {"User-Agent": "Mozilla/5.0 (compatible; BJJBot/1.0)"}
         resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        content_div = soup.find("h1")
+        techniques = []
+        incorrect = [
+            "All rights reserved",
+            "Wiki",
+            "Privacy Policy",
+            "Terms of Service",
+            "Contact Us",
+            "Make Your Own Hom",
+            "Martial arts books are great",
+        ]
 
-        variations = soup.find(id="strong")
+        # Extraer todos los <strong> con texto
+        strong_tags = soup.find_all("strong")
+        if strong_tags:
+            for tag in strong_tags:
+                text = tag.get_text().strip()
+                if any(inc in text for inc in incorrect) or not text:
+                    continue
+                text = fix_text(text)
 
-        for variations in soup.find_all("strong"):
-            text = variations.get_text().strip()
-            print(text)
-            variations.decompose()
+                # Buscar iframes que estén justo después del <strong>
+                videos = []
+                next_elements = tag.find_all_next(["iframe"], limit=3)
+                for iframe in next_elements:
+                    src = iframe.get("src", "")
+                    if "youtube" in src:
+                        # convertir embed → watch
+                        if "youtube.com/embed/" in src:
+                            video_id = src.split("/embed/")[-1].split("?")[0]
+                            src = f"https://www.youtube.com/watch?v={video_id}"
+                        videos.append(src)
 
-        if not content_div:
-            return "No description found."
+                techniques.append({"title": text, "videos": videos})
+        else:
+            # Si no hay ningún <strong>, intenta buscar iframes genéricos
+            generic_videos = []
+            for iframe in soup.find_all("iframe"):
+                src = iframe.get("src", "")
+                if "youtube" in src:
+                    if "youtube.com/embed/" in src:
+                        video_id = src.split("/embed/")[-1].split("?")[0]
+                        src = f"https://www.youtube.com/watch?v={video_id}"
+                    generic_videos.append(src)
+            if generic_videos:
+                techniques.append({"title": "Main Technique", "videos": generic_videos})
 
-        text = content_div.get_text(separator="\n").strip()
-
-        return text[:800]
+        return techniques or [{"title": "No description found", "videos": []}]
     except Exception as e:
-        return f"Error fetching {url}: {e}"
+        return [{"title": f"Error fetching {url}: {e}", "videos": []}]
 
 
 def main():
-
-    json = {}
+    _json = {}
 
     for name, url in TECHNIQUE_URLS:
+        data = get_description(url)
+        _json[name] = {"variations": data, "url": url}
+        print(f"✅ {name} → {len(data)} técnicas encontradas")
 
-        json[name] = url
+    # Guardar en JSON
+    with open("techniques_variations.json", "w", encoding="utf-8") as f:
+        json.dump(_json, f, indent=4, ensure_ascii=False)
 
-        a = get_description(url)
-        print(a)
+    print("\n🎉 Archivo 'techniques_variations.json' generado correctamente.")
 
 
 if __name__ == "__main__":
