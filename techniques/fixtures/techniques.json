@@ -4,11 +4,11 @@
     "pk": 1,
     "fields": {
       "name": "Closed Guard",
+      "slug": "closed-guard",
       "description": "Guardia cerrada básica para controlar al oponente desde abajo.",
       "difficulty": 1,
       "min_belt": 1,
-      "image_url": "",
-      "video_url": ""
+      "image_url": ""
     }
   },
   {
@@ -16,11 +16,11 @@
     "pk": 2,
     "fields": {
       "name": "Scissor Sweep",
+      "slug": "scissor-sweep",
       "description": "Barrido básico desde guardia cerrada.",
       "difficulty": 2,
       "min_belt": 2,
-      "image_url": "",
-      "video_url": ""
+      "image_url": ""
     }
   },
   {
@@ -28,11 +28,11 @@
     "pk": 3,
     "fields": {
       "name": "Armbar from Guard",
+      "slug": "armbar-from-guard",
       "description": "Finalización desde guardia cerrada atacando el brazo del oponente.",
       "difficulty": 3,
       "min_belt": 2,
-      "image_url": "",
-      "video_url": ""
+      "image_url": ""
     }
   },
   {
@@ -40,11 +40,11 @@
     "pk": 4,
     "fields": {
       "name": "Triangle from Guard",
+      "slug": "triangle-from-guard",
       "description": "Finalización con las piernas desde guardia cerrada.",
       "difficulty": 3,
       "min_belt": 3,
-      "image_url": "",
-      "video_url": ""
+      "image_url": ""
     }
   },
   {
@@ -52,11 +52,11 @@
     "pk": 5,
     "fields": {
       "name": "Mount Escape",
+      "slug": "mount-escape",
       "description": "Escape básico de la posición de montada.",
       "difficulty": 2,
       "min_belt": 1,
-      "image_url": "",
-      "video_url": ""
+      "image_url": ""
     }
   }
 ]

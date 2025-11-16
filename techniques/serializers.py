@@ -27,7 +27,7 @@ class TechniqueFlowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TechniqueFlow
-        fields = ["id", "to_technique", "description", "probability"]
+        fields = ["id", "to_technique", "description"]
 
 
 class TechniqueSerializer(serializers.ModelSerializer):
