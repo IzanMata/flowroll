@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "drf_spectacular",
     # Local apps
     "competitions",
     "athletes",
@@ -57,6 +58,18 @@ INSTALLED_APPS = [
     "techniques",
     "stats",
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Flowroll API",
+    "DESCRIPTION": "API para técnicas de jiu-jitsu",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+}
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
