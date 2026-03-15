@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     "matches",
     "techniques",
     "stats",
+    "academies",
+    "core",
 ]
 
 REST_FRAMEWORK = {

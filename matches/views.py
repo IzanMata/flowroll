@@ -13,7 +13,7 @@ class MatchViewSet(viewsets.ModelViewSet):
     serializer_class = MatchSerializer
 
     @action(detail=True, methods=["post"])
-    def add_match(self, request, pk=None):
+    def add_event(self, request, pk=None):
 
         match = self.get_object()
         event_serializer = MatchEventSerializer(data=request.data)

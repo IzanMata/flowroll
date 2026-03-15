@@ -3,6 +3,10 @@ from django.db import models
 
 
 class Match(models.Model):
+
+    academy = models.ForeignKey(
+        "academies.Academy", on_delete=models.CASCADE, related_name="matches", null=True
+    )
     athlete_a = models.ForeignKey(
         auth_models.User, on_delete=models.CASCADE, related_name="matches_a"
     )
