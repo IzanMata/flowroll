@@ -22,8 +22,10 @@ from drf_spectacular.views import (SpectacularAPIView, SpectacularRedocView,
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/athletes/", include("athletes.urls")),
     path("api/techniques/", include("techniques.urls")),
     path("api/matches/", include("matches.urls")),
+    path("api/academies/", include("academies.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",
