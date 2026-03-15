@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
-from .models import (Belt, Technique, TechniqueCategory, TechniqueFlow,
+from core.models import Belt
+
+from .models import (Technique, TechniqueCategory, TechniqueFlow,
                      TechniqueVariation)
 
 

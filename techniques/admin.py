@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import (Belt, Technique, TechniqueCategory, TechniqueFlow,
+from core.models import Belt
+
+from .models import (Technique, TechniqueCategory, TechniqueFlow,
                      TechniqueVariation)
 
 

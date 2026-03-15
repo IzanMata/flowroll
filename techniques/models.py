@@ -2,28 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
-
-class BeltColor(models.TextChoices):
-    WHITE = "white", "White"
-    BLUE = "blue", "Blue"
-    PURPLE = "purple", "Purple"
-    BROWN = "brown", "Brown"
-    BLACK = "black", "Black"
-
-
-class Belt(models.Model):
-
-    color = models.CharField(max_length=20, choices=BeltColor.choices, unique=True)
-    description = models.TextField(blank=True)
-    order = models.PositiveIntegerField(
-        help_text="Belt progression order, 1=white, 5=black"
-    )
-
-    class Meta:
-        ordering = ["order"]
-
-    def __str__(self):
-        return self.get_color_display()
+from core.models import Belt
 
 
 # TODO:
@@ -59,12 +38,10 @@ class Technique(models.Model):
     categories = models.ManyToManyField("TechniqueCategory", related_name="techniques")
     description = models.TextField(blank=True)
     difficulty = models.IntegerField(default=1)
-    min_belt = models.ForeignKey(
-        "Belt",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="techniques",
+    min_belt = models.CharField(
+        max_length=10,
+        choices=Belt.BeltColor.choices,
+        default=Belt.BeltColor.WHITE,
     )
     image_url = models.URLField(blank=True)
     source_name = models.CharField(
@@ -124,14 +101,13 @@ class TechniqueVariation(models.Model):
         return f"{self.technique.name} → {self.name}"
 
 
-class TransitionTypes(models.TextChoices):
-    CHAIN = "chain", "Chain"
-    COUNTER = "counter", "Counter"
-    ESCAPE = "escape", "Escape"
-    SETUP = "setup", "Setup"
-
-
 class TechniqueFlow(models.Model):
+
+    class TransitionTypes(models.TextChoices):
+        CHAIN = "chain", "Chain"
+        COUNTER = "counter", "Counter"
+        ESCAPE = "escape", "Escape"
+        SETUP = "setup", "Setup"
 
     from_technique = models.ForeignKey(
         Technique, on_delete=models.CASCADE, related_name="leads_to"

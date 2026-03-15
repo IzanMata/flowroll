@@ -25,16 +25,16 @@ class Match(models.Model):
 
 
 class MatchEvent(models.Model):
-    TYPE_CHOICES = [
-        ("POINTS", "Points"),
-        ("ADVANTAGE", "Advantage"),
-        ("PENALTY", "Penalty"),
-        ("SUBMISSION", "Submission"),
-    ]
+
+    class TypeChoices(models.TextChoices):
+        POINTS = "POINTS", "Points"
+        ADVANTAGE = "ADVANTAGE", "Advantage"
+        PENALTY = "PENALTY", "Penalty"
+        SUBMISSION = "SUBMISSION", "Submission"
 
     match = models.ForeignKey(Match, related_name="events", on_delete=models.CASCADE)
     athlete = models.ForeignKey(auth_models.User, on_delete=models.CASCADE)
     timestamp = models.IntegerField()
     points_awarded = models.IntegerField(default=0)
     action_description = models.CharField(max_length=100)
-    event_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
+    event_type = models.CharField(max_length=15, choices=TypeChoices.choices)

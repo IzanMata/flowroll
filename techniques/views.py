@@ -1,6 +1,8 @@
 from rest_framework import filters, viewsets
 
-from .models import Belt, Technique, TechniqueCategory, TechniqueVariation
+from core.models import Belt
+
+from .models import Technique, TechniqueCategory, TechniqueVariation
 from .serializers import (BeltSerializer, TechniqueCategorySerializer,
                           TechniqueSerializer, TechniqueVariationSerializer)
 

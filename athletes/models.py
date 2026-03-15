@@ -2,21 +2,14 @@ from django.contrib.auth import models as auth_models
 from django.db import models
 
 from academies.models import Academy
+from core.models import Belt
 
 
 class AthleteProfile(models.Model):
-    ROLE_CHOICES = [
-        ("STUDENT", "Student"),
-        ("PROFESSOR", "Professor"),
-    ]
 
-    BELT_CHOICES = [
-        ("WHITE", "Blanco"),
-        ("BLUE", "Azul"),
-        ("PURPLE", "Morado"),
-        ("BROWN", "Marrón"),
-        ("BLACK", "Negro"),
-    ]
+    class RoleChoices(models.TextChoices):
+        STUDENT = "STUDENT", "Student"
+        PROFESSOR = "PROFESSOR", "Professor"
 
     user = models.OneToOneField(
         auth_models.User, on_delete=models.CASCADE, related_name="profile"
@@ -25,8 +18,12 @@ class AthleteProfile(models.Model):
         Academy, on_delete=models.SET_NULL, null=True, related_name="athletes"
     )
 
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="STUDENT")
-    belt = models.CharField(max_length=20, choices=BELT_CHOICES, default="WHITE")
+    role = models.CharField(
+        max_length=20, choices=RoleChoices.choices, default="STUDENT"
+    )
+    belt = models.CharField(
+        max_length=20, choices=Belt.BeltColor.choices, default="WHITE"
+    )
     stripes = models.IntegerField(default=0)
 
     def __str__(self):
