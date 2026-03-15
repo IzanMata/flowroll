@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import models as auth_models
 from rest_framework import serializers
 
 from .models import Match, MatchEvent
@@ -7,7 +7,7 @@ from .models import Match, MatchEvent
 class UserMinimalSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = User
+        model = auth_models.User
         fields = ["id", "username"]
 
 
@@ -29,7 +29,9 @@ class MatchEventSerializer(serializers.ModelSerializer):
 
 
 class MatchSerializer(serializers.ModelSerializer):
+
     events = MatchEventSerializer(many=True, read_only=True)
+
     athlete_a_detail = UserMinimalSerializer(source="athlete_a", read_only=True)
     athlete_b_detail = UserMinimalSerializer(source="athlete_b", read_only=True)
     winner_detail = UserMinimalSerializer(source="winner", read_only=True)
@@ -51,4 +53,5 @@ class MatchSerializer(serializers.ModelSerializer):
             "winner_detail",
             "events",
         ]
-        read_only_fields = ["score_a", "score_b", "is_finished", "winner"]
+
+        read_only_fields = ["score_a", "score_b", "is_finished", "winner", "date"]

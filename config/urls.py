@@ -19,11 +19,11 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (SpectacularAPIView, SpectacularRedocView,
                                    SpectacularSwaggerView)
-from rest_framework import permissions
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include("techniques.urls")),
+    path("api/techniques/", include("techniques.urls")),
+    path("api/matches/", include("matches.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",
