@@ -1,3 +1,6 @@
 from django.contrib import admin
 
-# Register your models here.
+from core.models import AcademyMembership, Belt
+
+admin.site.register(Belt)
+admin.site.register(AcademyMembership)

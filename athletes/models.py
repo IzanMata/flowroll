@@ -17,14 +17,46 @@ class AthleteProfile(models.Model):
     academy = models.ForeignKey(
         Academy, on_delete=models.SET_NULL, null=True, related_name="athletes"
     )
-
+    # Martial lineage — recursive self-reference
+    coach = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="students",
+        help_text="Direct instructor; enables ancestry-tree traversal.",
+    )
     role = models.CharField(
-        max_length=20, choices=RoleChoices.choices, default="STUDENT"
+        max_length=20, choices=RoleChoices.choices, default=RoleChoices.STUDENT
     )
     belt = models.CharField(
-        max_length=20, choices=Belt.BeltColor.choices, default="WHITE"
+        max_length=20, choices=Belt.BeltColor.choices, default=Belt.BeltColor.WHITE
     )
     stripes = models.IntegerField(default=0)
+    weight = models.FloatField(
+        null=True, blank=True, help_text="Body weight in kilograms, used for matchmaking."
+    )
+    mat_hours = models.FloatField(
+        default=0.0,
+        help_text="Cumulative mat hours derived from attendance check-ins.",
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["academy", "belt"]),
+        ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.get_belt_display()} ({self.academy.name if self.academy else 'Sin Academia'})"
+        return (
+            f"{self.user.username} — {self.get_belt_display()} "
+            f"({self.academy.name if self.academy else 'No Academy'})"
+        )
+
+    def get_lineage(self) -> list:
+        """Return the ancestry chain from this athlete up to the root instructor."""
+        chain = []
+        current = self.coach
+        while current is not None:
+            chain.append(current)
+            current = current.coach
+        return chain

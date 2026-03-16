@@ -20,7 +20,7 @@ load_fixtures:
 	$(MANAGE) loaddata techniques.json
 	$(MANAGE) loaddata flows.json
 	$(MANAGE) loaddata variations.json
-	
+
 run:
 	$(MANAGE) runserver 127.0.0.1:8000
 
@@ -32,6 +32,12 @@ createsuperuser:
 
 test:
 	$(MANAGE) test
+
+pytest:
+	$(VENV)/bin/pytest
+
+pytest-cov:
+	$(VENV)/bin/pytest --cov=. --cov-report=term-missing
 
 format:
 	$(VENV)/bin/black .
