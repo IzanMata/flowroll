@@ -1,1 +1,1 @@
-from django.shortcuts import render
+# membership views — placeholder; endpoints not yet implemented

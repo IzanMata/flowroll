@@ -53,10 +53,16 @@ class AthleteProfile(models.Model):
         )
 
     def get_lineage(self) -> list:
-        """Return the ancestry chain from this athlete up to the root instructor."""
+        """Return the ancestry chain from this athlete up to the root instructor.
+
+        M-9 fix: track visited nodes to break out of circular coach references
+        (e.g. A.coach=B, B.coach=A) that would otherwise loop forever.
+        """
         chain = []
+        visited_ids: set = set()
         current = self.coach
-        while current is not None:
+        while current is not None and current.pk not in visited_ids:
+            visited_ids.add(current.pk)
             chain.append(current)
             current = current.coach
         return chain

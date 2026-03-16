@@ -1,7 +1,7 @@
 # ─── Django core ──────────────────────────────────────────────────────────────
 Django==5.2.7
 djangorestframework==3.16.1
-djangorestframework-simplejwt==5.3.1
+djangorestframework-simplejwt[crypto]==5.3.1  # L-5: [crypto] enables token_blacklist
 django-filter==24.3
 django-cors-headers==4.9.0
 django-allauth==65.12.1
@@ -28,6 +28,7 @@ qrcode==8.0
 Pillow==11.1.0
 
 # ─── Dev / lint / test ────────────────────────────────────────────────────────
+python-dateutil==2.9.0.post0  # ISO date parsing in security tests
 black==25.9.0
 isort==7.0.0
 flake8==7.3.0

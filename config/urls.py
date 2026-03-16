@@ -7,11 +7,24 @@ from drf_spectacular.views import (
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from config.throttles import LoginRateThrottle, TokenRefreshRateThrottle
+
+
+# L-4 fix: apply tight per-endpoint throttles to the auth views so brute-force
+# login and token-refresh attacks are rate-limited independently.
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    throttle_classes = [LoginRateThrottle]
+
+
+class ThrottledTokenRefreshView(TokenRefreshView):
+    throttle_classes = [TokenRefreshRateThrottle]
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # Auth
-    path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    # Auth — throttled (L-4 fix)
+    path("api/auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/auth/token/refresh/", ThrottledTokenRefreshView.as_view(), name="token_refresh"),
     # Domain apps
     path("api/athletes/", include("athletes.urls")),
     path("api/techniques/", include("techniques.urls")),

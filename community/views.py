@@ -1,1 +1,1 @@
-from django.shortcuts import render
+# community views — placeholder; endpoints not yet implemented

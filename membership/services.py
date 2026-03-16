@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import Optional
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import F, Sum
 
 from athletes.models import AthleteProfile
 
@@ -267,11 +267,15 @@ class DojoTabService:
 
     @staticmethod
     def _update_balance(athlete: AthleteProfile, academy, delta: Decimal) -> None:
-        balance, _ = DojoTabBalance.objects.get_or_create(
+        # M-5 fix: use get_or_create + F() expression to avoid the lost-update
+        # race condition that occurs when two transactions read the same balance
+        # concurrently and both apply an arithmetic delta from their local copy.
+        DojoTabBalance.objects.get_or_create(
             athlete=athlete, academy=academy, defaults={"balance": Decimal("0.00")}
         )
-        balance.balance += delta
-        balance.save(update_fields=["balance"])
+        DojoTabBalance.objects.filter(athlete=athlete, academy=academy).update(
+            balance=F("balance") + delta
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +291,11 @@ class SeminarService:
         Register an athlete for a seminar.
         Automatically waitlists if the seminar is full.
         """
+        # M-6 fix: re-fetch the seminar with a row-level lock inside the
+        # atomic block so two concurrent registrations cannot both see
+        # spots_remaining > 0 and both be confirmed (overbooking).
+        seminar = Seminar.objects.select_for_update().get(pk=seminar.pk)
+
         if seminar.status not in (Seminar.Status.OPEN, Seminar.Status.FULL):
             raise ValueError(f"Seminar '{seminar.title}' is not open for registration.")
 

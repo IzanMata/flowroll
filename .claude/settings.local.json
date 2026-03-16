@@ -4,7 +4,16 @@
       "Bash(git add:*)",
       "Bash(git config:*)",
       "Bash(git push:*)",
-      "Bash(for app:*)"
+      "Bash(for app:*)",
+      "Bash(mv:*)",
+      "Bash(pip install:*)",
+      "Bash(python3:*)",
+      "Bash(python3.12 -m venv venv && venv/bin/pip install -r requirements.txt -q 2>&1 | tail -10)",
+      "Bash(sudo apt-get:*)",
+      "Bash(python3.12 -c \"\nimport ast, pathlib\nchanged_files = [\n    'academies/views.py',\n    'athletes/views.py',\n    'techniques/views.py',\n    'matches/views.py',\n    'attendance/views.py',\n    'attendance/services.py',\n    'attendance/selectors.py',\n    'attendance/serializers.py',\n    'tatami/views.py',\n    'membership/services.py',\n    'athletes/models.py',\n    'core/permissions.py',\n    'config/urls.py',\n    'config/throttles.py',\n    'academies/tests/test_api.py',\n    'athletes/tests/test_api.py',\n    'techniques/tests/test_api.py',\n    'matches/tests/test_api.py',\n    'attendance/tests/test_security.py',\n]\nall_ok = True\nfor f in changed_files:\n    try:\n        ast.parse\\(pathlib.Path\\(f\\).read_text\\(\\)\\)\n        print\\(f'OK  {f}'\\)\n    except SyntaxError as e:\n        print\\(f'ERR {f}: {e}'\\)\n        all_ok = False\nprint\\('All syntax OK' if all_ok else 'SYNTAX ERRORS FOUND'\\)\n\")",
+      "Read(//home/izanmata/Code/flowroll/**)",
+      "Bash(ls:*)",
+      "Bash(find:*)"
     ]
   }
 }

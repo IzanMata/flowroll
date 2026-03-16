@@ -5,7 +5,10 @@ from .models import CheckIn, DropInVisitor, QRCode, TrainingClass
 
 class TrainingClassSerializer(serializers.ModelSerializer):
     professor_username = serializers.CharField(source="professor.username", read_only=True)
-    attendance_count = serializers.SerializerMethodField()
+    # L-3 fix: read from a pre-computed annotation instead of issuing a COUNT
+    # query per object (N+1 problem).  The annotation is added by
+    # attendance/selectors.py::get_classes_for_academy().
+    attendance_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = TrainingClass
@@ -15,9 +18,6 @@ class TrainingClassSerializer(serializers.ModelSerializer):
             "attendance_count", "created_at",
         ]
         read_only_fields = ["created_at"]
-
-    def get_attendance_count(self, obj) -> int:
-        return obj.check_ins.count()
 
 
 class QRCodeSerializer(serializers.ModelSerializer):

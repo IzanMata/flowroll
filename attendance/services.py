@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from athletes.models import AthleteProfile
@@ -78,10 +79,11 @@ class CheckInService:
         if not created:
             raise ValueError("Athlete has already checked in to this class.")
 
-        # Accumulate mat hours from class duration
+        # H-5 fix: use F() expression to avoid lost-update race condition.
+        # The stale Python value `athlete.mat_hours` must NOT be used here.
         mat_hours_delta = training_class.duration_minutes / 60.0
         AthleteProfile.objects.filter(pk=athlete.pk).update(
-            mat_hours=athlete.mat_hours + mat_hours_delta
+            mat_hours=F("mat_hours") + mat_hours_delta
         )
         return check_in
 

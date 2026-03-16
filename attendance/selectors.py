@@ -7,7 +7,13 @@ from .models import CheckIn, DropInVisitor, TrainingClass
 
 
 def get_classes_for_academy(academy_id: int, upcoming_only: bool = False) -> QuerySet:
-    qs = TrainingClass.objects.filter(academy_id=academy_id).select_related("professor")
+    # L-3 fix: annotate attendance_count once at the DB level so the serializer
+    # can read obj.attendance_count without issuing a separate COUNT query per row.
+    qs = (
+        TrainingClass.objects.filter(academy_id=academy_id)
+        .select_related("professor")
+        .annotate(attendance_count=Count("check_ins", distinct=True))
+    )
     if upcoming_only:
         qs = qs.filter(scheduled_at__gte=timezone.now())
     return qs
