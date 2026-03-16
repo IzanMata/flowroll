@@ -1,3 +1,4 @@
+# ─── Django core ──────────────────────────────────────────────────────────────
 Django==5.2.7
 djangorestframework==3.16.1
 djangorestframework-simplejwt==5.3.1
@@ -5,11 +6,28 @@ django-filter==24.3
 django-cors-headers==4.9.0
 django-allauth==65.12.1
 drf-spectacular==0.28.0
-mysqlclient==2.2.7
 python-dotenv==1.1.1
+
+# ─── PostgreSQL ───────────────────────────────────────────────────────────────
+# psycopg[binary] bundles libpq — no system package needed in the Docker image
+psycopg[binary]==3.2.6
+
+# ─── Redis / cache ────────────────────────────────────────────────────────────
+redis==5.2.1
+django-redis==5.4.0
+
+# ─── Celery ───────────────────────────────────────────────────────────────────
+celery[redis]==5.4.0
+django-celery-beat==2.7.0
+
+# ─── Server ───────────────────────────────────────────────────────────────────
 gunicorn==23.0.0
+
+# ─── Media / QR ───────────────────────────────────────────────────────────────
 qrcode==8.0
 Pillow==11.1.0
+
+# ─── Dev / lint / test ────────────────────────────────────────────────────────
 black==25.9.0
 isort==7.0.0
 flake8==7.3.0

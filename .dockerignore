@@ -1,0 +1,63 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info
+dist
+build
+.eggs
+.tox
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov
+.coverage
+coverage.xml
+*.cover
+
+# Virtual environments
+.venv
+venv
+env
+ENV
+
+# Django dev artifacts
+db.sqlite3
+*.sqlite3
+staticfiles/
+mediafiles/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Environment files (never bake secrets into the image)
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docs and tests (not needed in production image)
+README.md
+CLAUDE.md
+docs/
+*.log
+
+# Test fixtures
+full_dump.json

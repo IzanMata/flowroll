@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     # Third party
+    "django_celery_beat",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
@@ -82,13 +83,14 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get("MARIADB_DATABASE"),
-        "USER": os.environ.get("MARIADB_USER"),
-        "PASSWORD": os.environ.get("MARIADB_PASSWORD"),
-        "HOST": os.environ.get("MARIADB_HOST"),
-        "PORT": os.environ.get("MARIADB_PORT"),
-        "OPTIONS": {"charset": "utf8mb4"},
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB"),
+        "USER": os.environ.get("POSTGRES_USER"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        # CONN_MAX_AGE reduces connection overhead in production
+        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
     }
 }
 
@@ -124,10 +126,9 @@ SPECTACULAR_SETTINGS = {
     "SECURITY": [{"Bearer": []}],
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOWED_ORIGINS = os.environ.get(
+    "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -140,5 +141,47 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
-STATIC_URL = "static/"
+
+# ─── Static & media files ─────────────────────────────────────────────────────
+STATIC_URL = "/static/"
+# Collected here by `collectstatic`; served by Nginx in production
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "/media/"
+# User-uploaded files; served by Nginx in production
+MEDIA_ROOT = BASE_DIR / "mediafiles"
+
+# ─── Redis / Cache ────────────────────────────────────────────────────────────
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            # Silently drop cache misses instead of raising on Redis failure
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "TIMEOUT": 300,  # 5 minutes default TTL
+    }
+}
+
+# Store sessions in Redis (faster than DB, survives pod restarts)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+# ─── Celery ───────────────────────────────────────────────────────────────────
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+# Persist periodic task schedule in the database (managed via Django admin)
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+# Avoid zombie tasks on worker restart
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
