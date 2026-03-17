@@ -8,7 +8,7 @@ services:
 
   # ─── PostgreSQL ─────────────────────────────────────────────────────────────
   postgres:
-    image: postgres:16-alpine
+    image: docker.io/library/postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -27,7 +27,7 @@ services:
 
   # ─── Redis ──────────────────────────────────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: docker.io/library/redis:7-alpine
     restart: unless-stopped
     command: redis-server --save 60 1 --loglevel warning
     volumes:
@@ -119,12 +119,12 @@ services:
 
   # ─── Nginx ──────────────────────────────────────────────────────────────────
   nginx:
-    image: nginx:1.25-alpine
+    image: docker.io/library/nginx:1.25-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
       # Uncomment for HTTPS (requires certbot setup):
-      # - "443:443"
+      # - "8443:443"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - static_volume:/app/staticfiles:ro

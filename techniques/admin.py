@@ -1,15 +1,7 @@
 from django.contrib import admin
 
-from core.models import Belt
-
 from .models import (Technique, TechniqueCategory, TechniqueFlow,
                      TechniqueVariation)
-
-
-@admin.register(Belt)
-class BeltAdmin(admin.ModelAdmin):
-    list_display = ("color", "order")
-    ordering = ("order",)
 
 
 @admin.register(TechniqueCategory)

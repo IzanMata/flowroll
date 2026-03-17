@@ -1,0 +1,9 @@
+{
+  "model": "claude-sonnet-4-20250514",
+  "thinking": {
+    "enabled": false
+  },
+  "env": {
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1"
+  }
+}

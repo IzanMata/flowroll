@@ -1,0 +1,41 @@
+# Dependencies / build artifacts
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.eggs/
+
+# Test / coverage artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Static / media (generated, not source)
+staticfiles/
+mediafiles/
+
+# Logs
+*.log
+celerybeat-schedule
+celerybeat.pid
+
+# Secrets
+.env
+
+# Git internals
+.git/
+
+# Lock files (not relevant to code understanding)
+*.lock
+Pipfile.lock
+
+# Docker layer cache
+.docker/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
