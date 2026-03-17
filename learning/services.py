@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db import transaction
 
-from .models import ClassTechniqueJournal, SparringNote
+from .models import ClassTechniqueJournal
 
 
 class TechniqueJournalService:
@@ -22,7 +22,5 @@ class TechniqueJournalService:
         return journal
 
 
-class SparringNoteService:
-    @staticmethod
-    def create_note(athlete, **kwargs) -> SparringNote:
-        return SparringNote.objects.create(athlete=athlete, **kwargs)
+# SparringNoteService removed - was just a thin wrapper around SparringNote.objects.create()
+# Views should call SparringNote.objects.create() directly as it adds no business logic

@@ -102,7 +102,7 @@ class Matchup(TenantMixin, TimestampMixin):
         TOURNAMENT = "TOURNAMENT", "Tournament (bracket)"
         SURVIVAL = "SURVIVAL", "Survival (king of the mat)"
 
-    class MatchStatus(models.TextChoices):
+    class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
         IN_PROGRESS = "IN_PROGRESS", "In Progress"
         COMPLETED = "COMPLETED", "Completed"
@@ -130,7 +130,7 @@ class Matchup(TenantMixin, TimestampMixin):
     )
     round_number = models.PositiveIntegerField(default=1)
     status = models.CharField(
-        max_length=15, choices=MatchStatus.choices, default=MatchStatus.PENDING
+        max_length=15, choices=Status.choices, default=Status.PENDING
     )
     winner = models.ForeignKey(
         "athletes.AthleteProfile",

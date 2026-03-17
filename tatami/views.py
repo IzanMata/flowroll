@@ -5,11 +5,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from athletes.models import AthleteProfile
+from core.mixins import AcademyFilterMixin, SwaggerSafeMixin
 from core.permissions import IsAcademyMember, IsAcademyProfessor
 
 from . import selectors
 from .filters import MatchupFilter, TimerPresetFilter
-from .models import Matchup, TimerPreset, TimerSession, WeightClass
+from .models import Matchup, TimerSession, WeightClass
 from .serializers import (MatchupSerializer, PairAthletesSerializer,
                           TimerPresetSerializer, TimerSessionSerializer,
                           WeightClassSerializer)
@@ -25,7 +26,7 @@ class WeightClassViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["min_weight"]
 
 
-class TimerPresetViewSet(viewsets.ModelViewSet):
+class TimerPresetViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet):
     """
     M-4 fix: timer presets are academy-scoped; access restricted to
     academy members; mutations restricted to professors/owners.
@@ -35,11 +36,12 @@ class TimerPresetViewSet(viewsets.ModelViewSet):
     filterset_class = TimerPresetFilter
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return TimerPreset.objects.none()
-        return selectors.get_presets_for_academy(
-            self.request.query_params.get("academy", 0)
-        )
+        # SwaggerSafeMixin handles swagger_fake_view check
+        super().get_queryset()
+
+        # M-4 fix: Academy-scoped timer presets
+        academy_id = self.get_academy_id()
+        return selectors.get_presets_for_academy(academy_id or 0)
 
     def get_permissions(self):
         if self.request.method in ("GET", "HEAD", "OPTIONS"):
@@ -56,7 +58,7 @@ class TimerPresetViewSet(viewsets.ModelViewSet):
         )
 
 
-class TimerSessionViewSet(viewsets.ModelViewSet):
+class TimerSessionViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet):
     """
     M-4 fix: timer sessions are scoped to academy; access restricted to members.
     """
@@ -65,11 +67,12 @@ class TimerSessionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAcademyMember]
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return TimerSession.objects.none()
-        return selectors.get_active_sessions(
-            self.request.query_params.get("academy", 0)
-        )
+        # SwaggerSafeMixin handles swagger_fake_view check
+        super().get_queryset()
+
+        # M-4 fix: Academy-scoped timer sessions
+        academy_id = self.get_academy_id()
+        return selectors.get_active_sessions(academy_id or 0)
 
     @action(detail=True, methods=["post"])
     def pause(self, request, pk=None):
@@ -87,7 +90,7 @@ class TimerSessionViewSet(viewsets.ModelViewSet):
         return Response(TimerSessionSerializer(session).data)
 
 
-class MatchupViewSet(viewsets.ModelViewSet):
+class MatchupViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet):
     """
     M-3/M-4 fix: matchups scoped to academy; pair_athletes validates that
     all supplied athlete IDs belong to the requested academy.
@@ -99,11 +102,12 @@ class MatchupViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAcademyMember]
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Matchup.objects.none()
-        return selectors.get_matchups_for_academy(
-            self.request.query_params.get("academy", 0)
-        )
+        # SwaggerSafeMixin handles swagger_fake_view check
+        super().get_queryset()
+
+        # M-3/M-4 fix: Academy-scoped matchups
+        academy_id = self.get_academy_id()
+        return selectors.get_matchups_for_academy(academy_id or 0)
 
     @extend_schema(
         request=PairAthletesSerializer, responses=MatchupSerializer(many=True)

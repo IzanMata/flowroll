@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
+from core.mixins import SwaggerSafeMixin
 from core.models import AcademyMembership
 from core.permissions import IsAcademyOwner
 
@@ -8,7 +9,7 @@ from .models import Academy
 from .serializers import AcademySerializer
 
 
-class AcademyViewSet(viewsets.ModelViewSet):
+class AcademyViewSet(SwaggerSafeMixin, viewsets.ModelViewSet):
     """
     H-1 fix: Scope queryset to the user's own academies and enforce
     ownership for mutating operations.
@@ -20,12 +21,16 @@ class AcademyViewSet(viewsets.ModelViewSet):
         """
         Return only academies the requesting user is an active member of.
         Superusers see everything.
+        H-1 fix: SwaggerSafeMixin handles swagger_fake_view check.
         """
-        if getattr(self, "swagger_fake_view", False):
-            return Academy.objects.none()
+        # SwaggerSafeMixin handles swagger_fake_view check
+        super().get_queryset()
+
         user = self.request.user
         if user.is_superuser:
             return Academy.objects.all()
+
+        # H-1 fix: Scope to user's academies
         member_ids = AcademyMembership.objects.filter(
             user=user,
             is_active=True,

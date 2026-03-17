@@ -5,7 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from athletes.models import AthleteProfile
-from core.models import AcademyMembership
+from core.exceptions import standardize_service_error
+from core.mixins import AcademyFilterMixin, SwaggerSafeMixin
 from core.permissions import IsAcademyMember, IsAcademyProfessor
 
 from . import selectors
@@ -21,7 +22,7 @@ _MAX_QR_EXPIRY_MINUTES = 1440
 _MIN_QR_EXPIRY_MINUTES = 1
 
 
-class TrainingClassViewSet(viewsets.ModelViewSet):
+class TrainingClassViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet):
     """
     M-1 fix: get_queryset validates the requesting user is a member of the
     requested academy before returning any data.
@@ -35,26 +36,19 @@ class TrainingClassViewSet(viewsets.ModelViewSet):
     ordering_fields = ["scheduled_at", "duration_minutes"]
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return TrainingClass.objects.none()
+        # SwaggerSafeMixin handles swagger_fake_view check
+        super().get_queryset()
 
-        academy_id = self.request.query_params.get("academy")
-        if not academy_id:
-            return TrainingClass.objects.none()
+        # M-1 fix: Use academy scoped queryset with membership validation
+        academy_id = self.get_academy_id()
+        if self.request.user.is_superuser and academy_id:
+            return selectors.get_classes_for_academy(academy_id=academy_id)
 
-        # M-1 fix: verify the requesting user is an active member before
-        # returning any class schedule data.
-        user = self.request.user
-        if not user.is_superuser:
-            is_member = AcademyMembership.objects.filter(
-                user=user,
-                academy_id=academy_id,
-                is_active=True,
-            ).exists()
-            if not is_member:
-                return TrainingClass.objects.none()
-
-        return selectors.get_classes_for_academy(academy_id=academy_id)
+        # For regular users, validate membership and return scoped queryset
+        validated_queryset = self.get_academy_scoped_queryset(TrainingClass.objects.all())
+        if academy_id and validated_queryset is not TrainingClass.objects.none():
+            return selectors.get_classes_for_academy(academy_id=academy_id)
+        return validated_queryset
 
     @extend_schema(request=None, responses=QRCodeSerializer)
     @action(detail=True, methods=["post"], permission_classes=[IsAcademyProfessor])
@@ -85,7 +79,7 @@ class TrainingClassViewSet(viewsets.ModelViewSet):
                 athlete, serializer.validated_data["token"]
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            raise standardize_service_error(exc)
         return Response(
             CheckInSerializer(check_in).data, status=status.HTTP_201_CREATED
         )
@@ -101,7 +95,7 @@ class TrainingClassViewSet(viewsets.ModelViewSet):
         serializer = ManualCheckInSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        academy_id = request.query_params.get("academy")
+        academy_id = self.get_academy_id()
         if not academy_id:
             return Response(
                 {"detail": "academy query param is required."},
@@ -122,13 +116,13 @@ class TrainingClassViewSet(viewsets.ModelViewSet):
         try:
             check_in = CheckInService.check_in_manual(athlete, training_class)
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            raise standardize_service_error(exc)
         return Response(
             CheckInSerializer(check_in).data, status=status.HTTP_201_CREATED
         )
 
 
-class DropInVisitorViewSet(viewsets.ModelViewSet):
+class DropInVisitorViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet):
     """
     M-2 fix: Creation requires IsAcademyProfessor — any academy member can still
     list drop-in visitors, but only professors/owners can register new ones.
@@ -139,25 +133,18 @@ class DropInVisitorViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return DropInVisitor.objects.none()
+        # SwaggerSafeMixin handles swagger_fake_view check
+        super().get_queryset()
 
-        academy_id = self.request.query_params.get("academy")
-        if not academy_id:
-            return DropInVisitor.objects.none()
+        # M-2 fix: Verify membership before leaking PII
+        if self.request.user.is_superuser:
+            return self.filter_by_academy(DropInVisitor.objects.all())
 
-        # Verify membership before leaking PII
-        user = self.request.user
-        if not user.is_superuser:
-            is_member = AcademyMembership.objects.filter(
-                user=user,
-                academy_id=academy_id,
-                is_active=True,
-            ).exists()
-            if not is_member:
-                return DropInVisitor.objects.none()
-
-        return DropInVisitor.objects.filter(academy_id=academy_id)
+        # For regular users, validate membership and return scoped queryset
+        validated_queryset = self.get_academy_scoped_queryset(DropInVisitor.objects.all())
+        if validated_queryset is not DropInVisitor.objects.none():
+            return self.filter_by_academy(DropInVisitor.objects.all())
+        return validated_queryset
 
     def get_permissions(self):
         # M-2 fix: only professors/owners may register new drop-in visitors

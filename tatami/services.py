@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
+from django.db import transaction
+
 from athletes.models import AthleteProfile
 from core.models import Belt
 
@@ -150,6 +152,7 @@ class TimerService:
     """Manages the lifecycle of a TimerSession (start, pause, resume, finish)."""
 
     @staticmethod
+    @transaction.atomic
     def start(session) -> None:
         """
         Start (or resume) a timer session.
@@ -166,6 +169,7 @@ class TimerService:
         session.save(update_fields=["started_at", "status"])
 
     @staticmethod
+    @transaction.atomic
     def pause(session) -> None:
         """
         Pause a running timer session, accumulating elapsed seconds.
@@ -185,6 +189,7 @@ class TimerService:
         session.save(update_fields=["paused_at", "status", "elapsed_seconds"])
 
     @staticmethod
+    @transaction.atomic
     def finish(session) -> None:
         """Mark a timer session as FINISHED regardless of its current state."""
         session.status = session.Status.FINISHED

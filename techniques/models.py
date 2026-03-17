@@ -1,7 +1,7 @@
 from django.db import models
-from django.utils import timezone
 from django.utils.text import slugify
 
+from core.mixins import TimestampMixin
 from core.models import Belt
 
 
@@ -32,7 +32,7 @@ class TechniqueCategory(models.Model):
 # Si quieres soporte internacional, añadir campos name_en, description_en para traducciones.
 
 
-class Technique(models.Model):
+class Technique(TimestampMixin, models.Model):
     name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
     categories = models.ManyToManyField("TechniqueCategory", related_name="techniques")
@@ -50,8 +50,6 @@ class Technique(models.Model):
         help_text="Source of the data, e.g., 'BlackBeltWiki'",
     )
     source_url = models.URLField(blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["name"]
@@ -68,14 +66,13 @@ class Technique(models.Model):
 # TODO
 # Añadir un campo duration (segundos o minutos).
 # Campo tags o keywords para búsqueda avanzada.
-class TechniqueVideo(models.Model):
+class TechniqueVideo(TimestampMixin, models.Model):
     technique = models.ForeignKey(
         Technique, on_delete=models.CASCADE, related_name="videos"
     )
     title = models.CharField(max_length=200, blank=True)
     url = models.URLField(blank=True)
     source = models.CharField(max_length=100, default="YouTube")
-    created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         ordering = ["technique", "id"]

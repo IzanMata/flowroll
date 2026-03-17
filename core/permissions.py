@@ -8,6 +8,30 @@ def _resolve_academy_pk(view, request):
     return view.kwargs.get("academy_pk") or request.query_params.get("academy")
 
 
+def get_academy_scoped_queryset(queryset, user, academy_pk):
+    """
+    Helper function to scope queryset to academy members only.
+    Eliminates duplication across ViewSets that check academy membership.
+
+    Returns:
+        Empty queryset if user is not an active member of the academy,
+        otherwise returns the original queryset.
+    """
+    if not academy_pk:
+        return queryset.none()
+
+    is_member = AcademyMembership.objects.filter(
+        user=user,
+        academy_id=academy_pk,
+        is_active=True,
+    ).exists()
+
+    if not is_member:
+        return queryset.none()
+
+    return queryset
+
+
 class IsAcademyMember(BasePermission):
     """Allow access to any active member of the academy identified by `academy_pk` in the URL."""
 

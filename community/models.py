@@ -81,13 +81,13 @@ class OpenMatSession(TenantMixin, TimestampMixin):
 
     @property
     def going_count(self) -> int:
-        return self.rsvps.filter(status=OpenMatRSVP.RSVPStatus.GOING).count()
+        return self.rsvps.filter(status=OpenMatRSVP.Status.GOING).count()
 
 
 class OpenMatRSVP(TimestampMixin):
     """An athlete's intention-to-attend declaration for an OpenMatSession."""
 
-    class RSVPStatus(models.TextChoices):
+    class Status(models.TextChoices):
         GOING = "GOING", "Going"
         NOT_GOING = "NOT_GOING", "Not Going"
         MAYBE = "MAYBE", "Maybe"
@@ -103,7 +103,7 @@ class OpenMatRSVP(TimestampMixin):
         related_name="open_mat_rsvps",
     )
     status = models.CharField(
-        max_length=10, choices=RSVPStatus.choices, default=RSVPStatus.GOING
+        max_length=10, choices=Status.choices, default=Status.GOING
     )
 
     class Meta:
