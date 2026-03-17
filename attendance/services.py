@@ -15,7 +15,9 @@ class QRCodeService:
     DEFAULT_EXPIRY_MINUTES = 30
 
     @staticmethod
-    def generate(training_class: TrainingClass, expiry_minutes: int = DEFAULT_EXPIRY_MINUTES) -> QRCode:
+    def generate(
+        training_class: TrainingClass, expiry_minutes: int = DEFAULT_EXPIRY_MINUTES
+    ) -> QRCode:
         """Create (or refresh) the QR code for a training class."""
         expires_at = timezone.now() + timedelta(minutes=expiry_minutes)
         qr, created = QRCode.objects.update_or_create(
@@ -25,6 +27,7 @@ class QRCodeService:
         # Force token regeneration on refresh
         if not created:
             import secrets
+
             qr.token = secrets.token_urlsafe(48)
             qr.expires_at = expires_at
             qr.save(update_fields=["token", "expires_at", "is_active"])
@@ -37,7 +40,9 @@ class QRCodeService:
         Raises ValueError if expired or not found.
         """
         try:
-            qr = QRCode.objects.select_related("training_class").get(token=token, is_active=True)
+            qr = QRCode.objects.select_related("training_class").get(
+                token=token, is_active=True
+            )
         except QRCode.DoesNotExist:
             raise ValueError("Invalid or inactive QR code token.")
         if not qr.is_valid:
@@ -57,13 +62,19 @@ class CheckInService:
     def check_in_via_qr(athlete: AthleteProfile, token: str) -> CheckIn:
         """Validate QR token and register the athlete's check-in."""
         qr = QRCodeService.validate(token)
-        return CheckInService._create_check_in(athlete, qr.training_class, CheckIn.Method.QR)
+        return CheckInService._create_check_in(
+            athlete, qr.training_class, CheckIn.Method.QR
+        )
 
     @staticmethod
     @transaction.atomic
-    def check_in_manual(athlete: AthleteProfile, training_class: TrainingClass) -> CheckIn:
+    def check_in_manual(
+        athlete: AthleteProfile, training_class: TrainingClass
+    ) -> CheckIn:
         """Professor-triggered manual check-in."""
-        return CheckInService._create_check_in(athlete, training_class, CheckIn.Method.MANUAL)
+        return CheckInService._create_check_in(
+            athlete, training_class, CheckIn.Method.MANUAL
+        )
 
     @staticmethod
     def _create_check_in(

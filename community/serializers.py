@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from .models import Achievement, AthleteAchievement, OpenMatRSVP, OpenMatSession
+from .models import (Achievement, AthleteAchievement, OpenMatRSVP,
+                     OpenMatSession)
 
 
 class AchievementSerializer(serializers.ModelSerializer):
@@ -8,7 +9,14 @@ class AchievementSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Achievement
-        fields = ["id", "name", "description", "icon_url", "trigger_type", "trigger_value"]
+        fields = [
+            "id",
+            "name",
+            "description",
+            "icon_url",
+            "trigger_type",
+            "trigger_value",
+        ]
 
 
 class AthleteAchievementSerializer(serializers.ModelSerializer):
@@ -42,8 +50,16 @@ class OpenMatSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = OpenMatSession
         fields = [
-            "id", "academy", "title", "event_date", "start_time", "end_time",
-            "max_capacity", "description", "is_cancelled", "going_count",
+            "id",
+            "academy",
+            "title",
+            "event_date",
+            "start_time",
+            "end_time",
+            "max_capacity",
+            "description",
+            "is_cancelled",
+            "going_count",
         ]
 
 

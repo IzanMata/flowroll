@@ -27,4 +27,6 @@ def get_upcoming_open_mats(academy_id: int) -> QuerySet:
 
 
 def get_achievements_for_athlete(athlete: AthleteProfile) -> QuerySet:
-    return AthleteAchievement.objects.filter(athlete=athlete).select_related("achievement")
+    return AthleteAchievement.objects.filter(athlete=athlete).select_related(
+        "achievement"
+    )

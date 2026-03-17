@@ -41,7 +41,9 @@ class VideoLibraryItem(TenantMixin, TimestampMixin):
 
     title = models.CharField(max_length=200)
     url = models.URLField()
-    source = models.CharField(max_length=20, choices=Source.choices, default=Source.YOUTUBE)
+    source = models.CharField(
+        max_length=20, choices=Source.choices, default=Source.YOUTUBE
+    )
     visibility = models.CharField(
         max_length=20, choices=Visibility.choices, default=Visibility.PUBLIC
     )

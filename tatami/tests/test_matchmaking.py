@@ -3,11 +3,11 @@ Unit tests for MatchmakingService.
 
 Run with:  pytest tatami/tests/test_matchmaking.py
 """
+
 import pytest
 
 from tatami.models import Matchup, WeightClass
 from tatami.services import BELT_ORDER, MatchmakingService, _athlete_score
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -44,7 +44,9 @@ class TestAthleteScore:
 
 
 class TestTournamentPairing:
-    def test_even_number_creates_correct_matchup_count(self, make_athlete, academy, belt_white):
+    def test_even_number_creates_correct_matchup_count(
+        self, make_athlete, academy, belt_white
+    ):
         athletes = [make_athlete(belt=belt_white) for _ in range(6)]
         matchups = MatchmakingService.pair_for_tournament(athletes, academy)
         assert len(matchups) == 3
@@ -54,7 +56,9 @@ class TestTournamentPairing:
         matchups = MatchmakingService.pair_for_tournament(athletes, academy)
         assert len(matchups) == 2  # one athlete receives a bye
 
-    def test_single_athlete_produces_no_matchup(self, make_athlete, academy, belt_white):
+    def test_single_athlete_produces_no_matchup(
+        self, make_athlete, academy, belt_white
+    ):
         athletes = [make_athlete(belt=belt_white)]
         matchups = MatchmakingService.pair_for_tournament(athletes, academy)
         assert matchups == []
@@ -62,11 +66,16 @@ class TestTournamentPairing:
     def test_matchups_persisted_to_db(self, make_athlete, academy, belt_white):
         athletes = [make_athlete(belt=belt_white) for _ in range(4)]
         MatchmakingService.pair_for_tournament(athletes, academy)
-        assert Matchup.objects.filter(
-            match_format=Matchup.MatchFormat.TOURNAMENT, academy=academy
-        ).count() == 2
+        assert (
+            Matchup.objects.filter(
+                match_format=Matchup.MatchFormat.TOURNAMENT, academy=academy
+            ).count()
+            == 2
+        )
 
-    def test_paired_by_nearest_belt(self, make_athlete, academy, belt_white, belt_blue, belt_purple):
+    def test_paired_by_nearest_belt(
+        self, make_athlete, academy, belt_white, belt_blue, belt_purple
+    ):
         """Athletes should be sorted by belt before pairing — closest skill levels face each other."""
         w1 = make_athlete(belt=belt_white, stripes=0)
         w2 = make_athlete(belt=belt_white, stripes=3)
@@ -79,14 +88,20 @@ class TestTournamentPairing:
         assert (w1.pk, w2.pk) in pair_ids
         assert (b1.pk, b2.pk) in pair_ids
 
-    def test_weight_class_attached_to_matchup(self, make_athlete, academy, belt_white, weight_class):
+    def test_weight_class_attached_to_matchup(
+        self, make_athlete, academy, belt_white, weight_class
+    ):
         athletes = [make_athlete(belt=belt_white) for _ in range(2)]
-        matchups = MatchmakingService.pair_for_tournament(athletes, academy, weight_class=weight_class)
+        matchups = MatchmakingService.pair_for_tournament(
+            athletes, academy, weight_class=weight_class
+        )
         assert matchups[0].weight_class == weight_class
 
     def test_round_number_stored(self, make_athlete, academy, belt_white):
         athletes = [make_athlete(belt=belt_white) for _ in range(2)]
-        matchups = MatchmakingService.pair_for_tournament(athletes, academy, round_number=3)
+        matchups = MatchmakingService.pair_for_tournament(
+            athletes, academy, round_number=3
+        )
         assert matchups[0].round_number == 3
 
 
@@ -101,12 +116,16 @@ class TestSurvivalPairing:
         matchups = MatchmakingService.pair_for_survival(athletes, academy)
         assert len(matchups) == 1
 
-    def test_raises_with_fewer_than_two_athletes(self, make_athlete, academy, belt_white):
+    def test_raises_with_fewer_than_two_athletes(
+        self, make_athlete, academy, belt_white
+    ):
         athletes = [make_athlete(belt=belt_white)]
         with pytest.raises(ValueError, match="at least 2"):
             MatchmakingService.pair_for_survival(athletes, academy)
 
-    def test_highest_ranked_athlete_is_defender(self, make_athlete, academy, belt_white, belt_black):
+    def test_highest_ranked_athlete_is_defender(
+        self, make_athlete, academy, belt_white, belt_black
+    ):
         white = make_athlete(belt=belt_white, stripes=0)
         black = make_athlete(belt=belt_black, stripes=0)
         matchups = MatchmakingService.pair_for_survival([white, black], academy)
@@ -135,13 +154,17 @@ class TestSurvivalAdvancement:
             status=Matchup.MatchStatus.COMPLETED,
             winner=a,
         )
-        next_matchup = MatchmakingService.advance_survival(matchup, remaining_challengers=[c])
+        next_matchup = MatchmakingService.advance_survival(
+            matchup, remaining_challengers=[c]
+        )
         assert next_matchup is not None
         assert next_matchup.athlete_a == a
         assert next_matchup.athlete_b == c
         assert next_matchup.round_number == 2
 
-    def test_advance_returns_none_when_no_challengers(self, make_athlete, academy, belt_blue):
+    def test_advance_returns_none_when_no_challengers(
+        self, make_athlete, academy, belt_blue
+    ):
         a, b = [make_athlete(belt=belt_blue) for _ in range(2)]
         matchup = Matchup.objects.create(
             academy=academy,
@@ -155,7 +178,9 @@ class TestSurvivalAdvancement:
         result = MatchmakingService.advance_survival(matchup, remaining_challengers=[])
         assert result is None
 
-    def test_advance_raises_if_matchup_not_completed(self, make_athlete, academy, belt_blue):
+    def test_advance_raises_if_matchup_not_completed(
+        self, make_athlete, academy, belt_blue
+    ):
         a, b = [make_athlete(belt=belt_blue) for _ in range(2)]
         matchup = Matchup.objects.create(
             academy=academy,

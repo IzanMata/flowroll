@@ -2,7 +2,11 @@
 Development settings.
 Safe to run locally; never use in production.
 """
+
+import os  # noqa: F401
+
 from .base import *  # noqa: F401, F403
+from .base import TIME_ZONE  # noqa: F401
 
 # ─── C-2 fix: DEBUG defaults to False; must be explicitly enabled in dev ──────
 DEBUG = os.environ.get("DEBUG", "True") == "True"

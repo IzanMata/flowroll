@@ -1,5 +1,4 @@
 """Tests for the Academy model."""
-import pytest
 
 from academies.models import Academy
 from factories import AcademyFactory

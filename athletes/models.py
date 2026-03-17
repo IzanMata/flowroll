@@ -42,7 +42,9 @@ class AthleteProfile(models.Model):
     )
     stripes = models.IntegerField(default=0)
     weight = models.FloatField(
-        null=True, blank=True, help_text="Body weight in kilograms, used for matchmaking."
+        null=True,
+        blank=True,
+        help_text="Body weight in kilograms, used for matchmaking.",
     )
     mat_hours = models.FloatField(
         default=0.0,

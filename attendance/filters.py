@@ -4,8 +4,12 @@ from .models import CheckIn, TrainingClass
 
 
 class TrainingClassFilter(django_filters.FilterSet):
-    scheduled_after = django_filters.DateTimeFilter(field_name="scheduled_at", lookup_expr="gte")
-    scheduled_before = django_filters.DateTimeFilter(field_name="scheduled_at", lookup_expr="lte")
+    scheduled_after = django_filters.DateTimeFilter(
+        field_name="scheduled_at", lookup_expr="gte"
+    )
+    scheduled_before = django_filters.DateTimeFilter(
+        field_name="scheduled_at", lookup_expr="lte"
+    )
 
     class Meta:
         model = TrainingClass

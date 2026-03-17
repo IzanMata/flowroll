@@ -1,10 +1,11 @@
 import secrets
 import uuid
+
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
-from core.mixins import TimestampMixin, TenantMixin
+from core.mixins import TenantMixin, TimestampMixin
 
 
 class TrainingClass(TenantMixin, TimestampMixin):
@@ -18,7 +19,9 @@ class TrainingClass(TenantMixin, TimestampMixin):
         COMPETITION = "COMPETITION", "Competition Prep"
 
     title = models.CharField(max_length=120)
-    class_type = models.CharField(max_length=20, choices=ClassType.choices, default=ClassType.GI)
+    class_type = models.CharField(
+        max_length=20, choices=ClassType.choices, default=ClassType.GI
+    )
     professor = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -125,13 +128,17 @@ class DropInVisitor(TimestampMixin):
     )
     access_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     expires_at = models.DateTimeField()
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PENDING
+    )
 
     class Meta:
         indexes = [
             models.Index(fields=["academy", "status"]),
             # P7 fix: expiry-sweep task filters by status + expires_at
-            models.Index(fields=["status", "expires_at"], name="dropin_status_expiry_idx"),
+            models.Index(
+                fields=["status", "expires_at"], name="dropin_status_expiry_idx"
+            ),
         ]
 
     def __str__(self):

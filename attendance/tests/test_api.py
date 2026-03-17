@@ -1,21 +1,15 @@
 """API endpoint tests for attendance views."""
-import pytest
+
 from datetime import timedelta
 
-from django.urls import reverse
+import pytest
 from django.utils import timezone
 from rest_framework import status
 
 from attendance.models import CheckIn, TrainingClass
 from attendance.services import QRCodeService
 from core.models import AcademyMembership
-from factories import (
-    AcademyFactory,
-    AthleteProfileFactory,
-    CheckInFactory,
-    TrainingClassFactory,
-    UserFactory,
-)
+from factories import AcademyFactory, TrainingClassFactory
 
 
 @pytest.fixture
@@ -33,6 +27,7 @@ def professor_membership(db, academy, professor_athlete):
 
 
 # ─── TrainingClass list/detail ────────────────────────────────────────────────
+
 
 class TestTrainingClassList:
     def test_requires_authentication(self, api_client, academy):
@@ -65,6 +60,7 @@ class TestTrainingClassList:
 
 # ─── generate_qr action ──────────────────────────────────────────────────────
 
+
 class TestGenerateQR:
     def test_professor_can_generate_qr(
         self, db, professor_client, academy, training_class, professor_membership
@@ -81,7 +77,9 @@ class TestGenerateQR:
         response = auth_client.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_unauthenticated_cannot_generate_qr(self, api_client, academy, training_class):
+    def test_unauthenticated_cannot_generate_qr(
+        self, api_client, academy, training_class
+    ):
         url = f"/api/attendance/classes/{training_class.pk}/generate_qr/?academy={academy.pk}"
         response = api_client.post(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -89,20 +87,27 @@ class TestGenerateQR:
 
 # ─── qr_checkin action ───────────────────────────────────────────────────────
 
+
 class TestQRCheckIn:
-    def test_valid_token_creates_checkin(self, db, auth_client, academy, training_class, athlete):
+    def test_valid_token_creates_checkin(
+        self, db, auth_client, academy, training_class, athlete
+    ):
         qr = QRCodeService.generate(training_class)
         url = "/api/attendance/classes/qr_checkin/"
         response = auth_client.post(url, {"token": qr.token})
         assert response.status_code == status.HTTP_201_CREATED
-        assert CheckIn.objects.filter(athlete=athlete, training_class=training_class).exists()
+        assert CheckIn.objects.filter(
+            athlete=athlete, training_class=training_class
+        ).exists()
 
     def test_invalid_token_returns_400(self, auth_client):
         url = "/api/attendance/classes/qr_checkin/"
         response = auth_client.post(url, {"token": "bad-token"})
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_duplicate_checkin_returns_400(self, db, auth_client, academy, training_class, athlete):
+    def test_duplicate_checkin_returns_400(
+        self, db, auth_client, academy, training_class, athlete
+    ):
         qr = QRCodeService.generate(training_class)
         url = "/api/attendance/classes/qr_checkin/"
         auth_client.post(url, {"token": qr.token})
@@ -116,7 +121,9 @@ class TestQRCheckIn:
         response = api_client.post(url, {"token": qr.token})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_mat_hours_updated_after_checkin(self, db, auth_client, academy, training_class, athlete):
+    def test_mat_hours_updated_after_checkin(
+        self, db, auth_client, academy, training_class, athlete
+    ):
         TrainingClass.objects.filter(pk=training_class.pk).update(duration_minutes=90)
         training_class.refresh_from_db()
         qr = QRCodeService.generate(training_class)
@@ -128,49 +135,74 @@ class TestQRCheckIn:
 
 # ─── manual_checkin action ────────────────────────────────────────────────────
 
+
 class TestManualCheckIn:
     def test_professor_can_manually_check_in_athlete(
-        self, db, professor_client, academy, training_class, athlete, professor_membership
+        self,
+        db,
+        professor_client,
+        academy,
+        training_class,
+        athlete,
+        professor_membership,
     ):
         url = f"/api/attendance/classes/manual_checkin/?academy={academy.pk}"
-        response = professor_client.post(url, {
-            "athlete_id": athlete.pk,
-            "training_class_id": training_class.pk,
-        })
+        response = professor_client.post(
+            url,
+            {
+                "athlete_id": athlete.pk,
+                "training_class_id": training_class.pk,
+            },
+        )
         assert response.status_code == status.HTTP_201_CREATED
-        assert CheckIn.objects.filter(athlete=athlete, training_class=training_class).exists()
+        assert CheckIn.objects.filter(
+            athlete=athlete, training_class=training_class
+        ).exists()
 
-    def test_student_cannot_manually_check_in(self, auth_client, academy, training_class, athlete):
+    def test_student_cannot_manually_check_in(
+        self, auth_client, academy, training_class, athlete
+    ):
         url = f"/api/attendance/classes/manual_checkin/?academy={academy.pk}"
-        response = auth_client.post(url, {
-            "athlete_id": athlete.pk,
-            "training_class_id": training_class.pk,
-        })
+        response = auth_client.post(
+            url,
+            {
+                "athlete_id": athlete.pk,
+                "training_class_id": training_class.pk,
+            },
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_nonexistent_athlete_returns_404(
         self, db, professor_client, academy, training_class, professor_membership
     ):
         url = f"/api/attendance/classes/manual_checkin/?academy={academy.pk}"
-        response = professor_client.post(url, {
-            "athlete_id": 99999,
-            "training_class_id": training_class.pk,
-        })
+        response = professor_client.post(
+            url,
+            {
+                "athlete_id": 99999,
+                "training_class_id": training_class.pk,
+            },
+        )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 # ─── DropIn visitor ───────────────────────────────────────────────────────────
 
+
 class TestDropInVisitorAPI:
     def test_create_drop_in_visitor(self, auth_client, academy):
         url = "/api/attendance/drop-ins/"
-        response = auth_client.post(url, {
-            "academy": academy.pk,
-            "first_name": "Guest",
-            "last_name": "Visitor",
-            "email": "guest@example.com",
-            "expires_at": (timezone.now() + timedelta(hours=24)).isoformat(),
-        }, format="json")
+        response = auth_client.post(
+            url,
+            {
+                "academy": academy.pk,
+                "first_name": "Guest",
+                "last_name": "Visitor",
+                "email": "guest@example.com",
+                "expires_at": (timezone.now() + timedelta(hours=24)).isoformat(),
+            },
+            format="json",
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["first_name"] == "Guest"
 

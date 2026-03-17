@@ -2,6 +2,7 @@
 Central factory_boy factories for all FlowRoll models.
 Import in tests: from factories import UserFactory, AthleteProfileFactory, ...
 """
+
 from datetime import date, timedelta
 from decimal import Decimal
 

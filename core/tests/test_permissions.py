@@ -1,9 +1,9 @@
 """Tests for all four DRF permission classes."""
-import pytest
+
 from unittest.mock import MagicMock
 
-from core.models import AcademyMembership
-from core.permissions import IsAcademyMember, IsAcademyOwner, IsAcademyProfessor, IsSuperAdmin
+from core.permissions import (IsAcademyMember, IsAcademyOwner,
+                              IsAcademyProfessor, IsSuperAdmin)
 from factories import AcademyFactory, AcademyMembershipFactory, UserFactory
 
 

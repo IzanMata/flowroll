@@ -3,12 +3,13 @@ Unit tests for PromotionService.
 
 Run with:  pytest membership/tests/test_promotion.py
 """
-import pytest
+
 from datetime import date, timedelta
+
+import pytest
 
 from membership.models import PromotionRequirement
 from membership.services import PromotionService
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -63,7 +64,9 @@ class TestPromotionReadinessEligible:
         athlete.mat_hours = 120.0
         athlete.save()
 
-        result = PromotionService.check_readiness(athlete, belt_awarded_date=belt_awarded)
+        result = PromotionService.check_readiness(
+            athlete, belt_awarded_date=belt_awarded
+        )
 
         assert result.is_ready is True
         assert result.mat_hours_ok is True
@@ -78,7 +81,9 @@ class TestPromotionReadinessEligible:
         athlete.mat_hours = 110.0
         athlete.save()
 
-        result = PromotionService.check_readiness(athlete, belt_awarded_date=belt_awarded)
+        result = PromotionService.check_readiness(
+            athlete, belt_awarded_date=belt_awarded
+        )
 
         assert result.current_mat_hours == 110.0
         assert result.required_mat_hours == 100.0
@@ -91,37 +96,49 @@ class TestPromotionReadinessEligible:
 
 
 class TestPromotionReadinessGaps:
-    def test_insufficient_mat_hours(self, make_athlete, belt_white, white_belt_requirement):
+    def test_insufficient_mat_hours(
+        self, make_athlete, belt_white, white_belt_requirement
+    ):
         belt_awarded = date.today() - timedelta(days=400)
         athlete = make_athlete(belt=belt_white, stripes=4)
         athlete.mat_hours = 50.0  # below 100 required
         athlete.save()
 
-        result = PromotionService.check_readiness(athlete, belt_awarded_date=belt_awarded)
+        result = PromotionService.check_readiness(
+            athlete, belt_awarded_date=belt_awarded
+        )
 
         assert result.is_ready is False
         assert result.mat_hours_ok is False
         assert "mat hours" in result.message
 
-    def test_insufficient_time_at_belt(self, make_athlete, belt_white, white_belt_requirement):
+    def test_insufficient_time_at_belt(
+        self, make_athlete, belt_white, white_belt_requirement
+    ):
         belt_awarded = date.today() - timedelta(days=30)  # only 1 month
         athlete = make_athlete(belt=belt_white, stripes=4)
         athlete.mat_hours = 120.0
         athlete.save()
 
-        result = PromotionService.check_readiness(athlete, belt_awarded_date=belt_awarded)
+        result = PromotionService.check_readiness(
+            athlete, belt_awarded_date=belt_awarded
+        )
 
         assert result.is_ready is False
         assert result.months_at_belt_ok is False
         assert "months at belt" in result.message
 
-    def test_insufficient_stripes(self, make_athlete, belt_white, white_belt_requirement):
+    def test_insufficient_stripes(
+        self, make_athlete, belt_white, white_belt_requirement
+    ):
         belt_awarded = date.today() - timedelta(days=400)
         athlete = make_athlete(belt=belt_white, stripes=2)  # only 2 stripes
         athlete.mat_hours = 120.0
         athlete.save()
 
-        result = PromotionService.check_readiness(athlete, belt_awarded_date=belt_awarded)
+        result = PromotionService.check_readiness(
+            athlete, belt_awarded_date=belt_awarded
+        )
 
         assert result.is_ready is False
         assert result.stripes_ok is False
@@ -133,7 +150,9 @@ class TestPromotionReadinessGaps:
         athlete.mat_hours = 5.0
         athlete.save()
 
-        result = PromotionService.check_readiness(athlete, belt_awarded_date=belt_awarded)
+        result = PromotionService.check_readiness(
+            athlete, belt_awarded_date=belt_awarded
+        )
 
         assert result.is_ready is False
         assert result.mat_hours_ok is False
@@ -147,7 +166,9 @@ class TestPromotionReadinessGaps:
 
 
 class TestNoRequirementConfigured:
-    def test_returns_not_ready_when_no_requirement_exists(self, make_athlete, belt_blue):
+    def test_returns_not_ready_when_no_requirement_exists(
+        self, make_athlete, belt_blue
+    ):
         """No PromotionRequirement for blue belt — should return not ready gracefully."""
         athlete = make_athlete(belt=belt_blue, stripes=4)
         athlete.mat_hours = 300.0
@@ -166,7 +187,12 @@ class TestNoRequirementConfigured:
 
 class TestAcademySpecificRequirement:
     def test_academy_specific_requirement_takes_precedence(
-        self, make_athlete, belt_white, white_belt_requirement, academy_white_requirement, academy
+        self,
+        make_athlete,
+        belt_white,
+        white_belt_requirement,
+        academy_white_requirement,
+        academy,
     ):
         """Academy override requires 150 mat hours; athlete only has 110 — not ready."""
         belt_awarded = date.today() - timedelta(days=400)
@@ -175,7 +201,9 @@ class TestAcademySpecificRequirement:
         athlete.save()
 
         # Without academy_id, uses global (100 hours) → ready
-        result_global = PromotionService.check_readiness(athlete, belt_awarded_date=belt_awarded)
+        result_global = PromotionService.check_readiness(
+            athlete, belt_awarded_date=belt_awarded
+        )
         assert result_global.is_ready is True
 
         # With academy_id, uses academy-specific (150 hours) → not ready
@@ -228,6 +256,8 @@ class TestMonthsAtBelt:
         athlete.mat_hours = 120.0
         athlete.save()
 
-        result = PromotionService.check_readiness(athlete, belt_awarded_date=belt_awarded)
+        result = PromotionService.check_readiness(
+            athlete, belt_awarded_date=belt_awarded
+        )
 
         assert result.months_at_belt_ok is True

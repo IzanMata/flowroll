@@ -38,9 +38,8 @@ class AthleteProfileViewSet(viewsets.ModelViewSet):
             if not is_member:
                 return AthleteProfile.objects.none()
 
-        return (
-            AthleteProfile.objects.filter(academy_id=academy_id)
-            .select_related("user", "academy")
+        return AthleteProfile.objects.filter(academy_id=academy_id).select_related(
+            "user", "academy"
         )
 
     def get_object(self):

@@ -1,4 +1,5 @@
 """Tests for core models: Belt and AcademyMembership."""
+
 import pytest
 
 from core.models import AcademyMembership, Belt
@@ -24,6 +25,7 @@ class TestBelt:
 
     def test_color_is_unique(self, db):
         from django.db import IntegrityError
+
         Belt.objects.create(color="white", order=1)
         with pytest.raises(IntegrityError):
             Belt.objects.create(color="white", order=2)
@@ -54,6 +56,7 @@ class TestAcademyMembership:
 
     def test_unique_user_per_academy(self, db):
         from django.db import IntegrityError
+
         user = UserFactory()
         academy = AcademyFactory()
         AcademyMembershipFactory(user=user, academy=academy)
@@ -70,7 +73,6 @@ class TestAcademyMembership:
 
     def test_cascade_delete_on_user(self, db):
         m = AcademyMembershipFactory()
-        user_pk = m.user.pk
         m.user.delete()
         assert not AcademyMembership.objects.filter(pk=m.pk).exists()
 

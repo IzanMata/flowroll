@@ -9,12 +9,11 @@ Covers:
   - finish_match accepts a valid participant as winner
   - add_event rejects an athlete not in the match
 """
+
 import pytest
 from rest_framework import status
 
-from core.models import AcademyMembership
 from factories import AcademyFactory, AcademyMembershipFactory, UserFactory
-
 
 MATCHES_URL = "/api/matches/"
 
@@ -70,6 +69,7 @@ def match_obj(db, match_academy, professor_user):
 
 # ─── Authentication guard ─────────────────────────────────────────────────────
 
+
 class TestMatchAuthGuard:
     def test_unauthenticated_list_returns_401(self, api_client, match_academy):
         response = api_client.get(f"{MATCHES_URL}?academy={match_academy.pk}")
@@ -78,19 +78,23 @@ class TestMatchAuthGuard:
 
 # ─── Permission guard ─────────────────────────────────────────────────────────
 
+
 class TestMatchPermissions:
     def test_student_cannot_list_matches(self, api_client, student_user, match_academy):
         api_client.force_authenticate(user=student_user)
         response = api_client.get(f"{MATCHES_URL}?academy={match_academy.pk}")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_professor_can_list_matches(self, api_client, professor_user, match_academy):
+    def test_professor_can_list_matches(
+        self, api_client, professor_user, match_academy
+    ):
         api_client.force_authenticate(user=professor_user)
         response = api_client.get(f"{MATCHES_URL}?academy={match_academy.pk}")
         assert response.status_code == status.HTTP_200_OK
 
 
 # ─── Queryset scoping ─────────────────────────────────────────────────────────
+
 
 class TestMatchQuerysetScoping:
     def test_no_academy_param_returns_empty(self, api_client, professor_user):
@@ -110,6 +114,7 @@ class TestMatchQuerysetScoping:
 
 
 # ─── finish_match winner validation (H-4 fix) ────────────────────────────────
+
 
 class TestFinishMatch:
     def test_valid_winner_finishes_match(

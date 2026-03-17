@@ -1,6 +1,6 @@
 from django.db import models
 
-from core.mixins import TimestampMixin, TenantMixin
+from core.mixins import TenantMixin, TimestampMixin
 
 
 class WeightClass(models.Model):
@@ -40,7 +40,9 @@ class TimerPreset(TenantMixin, TimestampMixin):
         CUSTOM = "CUSTOM", "Custom"
 
     name = models.CharField(max_length=80)
-    format = models.CharField(max_length=20, choices=Format.choices, default=Format.CUSTOM)
+    format = models.CharField(
+        max_length=20, choices=Format.choices, default=Format.CUSTOM
+    )
     round_duration_seconds = models.PositiveIntegerField(
         default=300, help_text="Duration of each round in seconds."
     )
@@ -76,7 +78,9 @@ class TimerSession(TimestampMixin):
         on_delete=models.CASCADE,
         related_name="sessions",
     )
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.IDLE)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.IDLE
+    )
     current_round = models.PositiveIntegerField(default=1)
     started_at = models.DateTimeField(null=True, blank=True)
     paused_at = models.DateTimeField(null=True, blank=True)

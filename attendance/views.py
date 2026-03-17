@@ -2,7 +2,6 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from athletes.models import AthleteProfile
@@ -10,16 +9,11 @@ from core.models import AcademyMembership
 from core.permissions import IsAcademyMember, IsAcademyProfessor
 
 from . import selectors
-from .filters import CheckInFilter, TrainingClassFilter
-from .models import CheckIn, DropInVisitor, TrainingClass
-from .serializers import (
-    CheckInSerializer,
-    DropInVisitorSerializer,
-    ManualCheckInSerializer,
-    QRCheckInSerializer,
-    QRCodeSerializer,
-    TrainingClassSerializer,
-)
+from .filters import TrainingClassFilter
+from .models import DropInVisitor, TrainingClass
+from .serializers import (CheckInSerializer, DropInVisitorSerializer,
+                          ManualCheckInSerializer, QRCheckInSerializer,
+                          QRCodeSerializer, TrainingClassSerializer)
 from .services import CheckInService, DropInService, QRCodeService
 
 # Maximum QR code lifetime a professor can request (24 hours)
@@ -92,7 +86,9 @@ class TrainingClassViewSet(viewsets.ModelViewSet):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(CheckInSerializer(check_in).data, status=status.HTTP_201_CREATED)
+        return Response(
+            CheckInSerializer(check_in).data, status=status.HTTP_201_CREATED
+        )
 
     @extend_schema(request=ManualCheckInSerializer, responses=CheckInSerializer)
     @action(detail=False, methods=["post"], permission_classes=[IsAcademyProfessor])
@@ -127,7 +123,9 @@ class TrainingClassViewSet(viewsets.ModelViewSet):
             check_in = CheckInService.check_in_manual(athlete, training_class)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(CheckInSerializer(check_in).data, status=status.HTTP_201_CREATED)
+        return Response(
+            CheckInSerializer(check_in).data, status=status.HTTP_201_CREATED
+        )
 
 
 class DropInVisitorViewSet(viewsets.ModelViewSet):

@@ -1,6 +1,7 @@
 """
 Achievement evaluation and stats aggregation services.
 """
+
 from __future__ import annotations
 
 from typing import List
@@ -9,7 +10,8 @@ from django.db import transaction
 
 from athletes.models import AthleteProfile
 
-from .models import Achievement, AthleteAchievement, OpenMatRSVP, OpenMatSession
+from .models import (Achievement, AthleteAchievement, OpenMatRSVP,
+                     OpenMatSession)
 
 
 class AchievementService:
@@ -43,7 +45,10 @@ class AchievementService:
 
         for achievement in auto_achievements:
             if AchievementService._is_triggered(
-                athlete, achievement, checkin_count=checkin_count, current_streak=current_streak
+                athlete,
+                achievement,
+                checkin_count=checkin_count,
+                current_streak=current_streak,
             ):
                 earned = AthleteAchievement.objects.create(
                     athlete=athlete, achievement=achievement
@@ -106,8 +111,9 @@ class StatsAggregationService:
         expected = today
 
         dates_desc = (
-            athlete.check_ins
-            .values_list("training_class__scheduled_at__date", flat=True)
+            athlete.check_ins.values_list(
+                "training_class__scheduled_at__date", flat=True
+            )
             .order_by("-training_class__scheduled_at__date")
             .distinct()
         )
@@ -139,7 +145,9 @@ class StatsAggregationService:
         return {
             "total_check_ins": total_check_ins,
             "mat_hours": athlete.mat_hours,
-            "current_streak_days": StatsAggregationService.compute_current_streak(athlete),
+            "current_streak_days": StatsAggregationService.compute_current_streak(
+                athlete
+            ),
             "achievements_count": achievements_count,
         }
 
@@ -147,7 +155,9 @@ class StatsAggregationService:
 class OpenMatService:
     @staticmethod
     @transaction.atomic
-    def rsvp(athlete: AthleteProfile, session: OpenMatSession, rsvp_status: str) -> OpenMatRSVP:
+    def rsvp(
+        athlete: AthleteProfile, session: OpenMatSession, rsvp_status: str
+    ) -> OpenMatRSVP:
         rsvp, _ = OpenMatRSVP.objects.update_or_create(
             session=session,
             athlete=athlete,

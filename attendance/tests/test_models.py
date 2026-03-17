@@ -1,19 +1,15 @@
 """Tests for attendance models."""
+
+from datetime import timedelta
+
 import pytest
 from django.db import IntegrityError
 from django.utils import timezone
-from datetime import timedelta
 
-from attendance.models import CheckIn, DropInVisitor, QRCode, TrainingClass
-from factories import (
-    AthleteProfileFactory,
-    AcademyFactory,
-    CheckInFactory,
-    DropInVisitorFactory,
-    QRCodeFactory,
-    TrainingClassFactory,
-    UserFactory,
-)
+from attendance.models import CheckIn, DropInVisitor, TrainingClass
+from factories import (AthleteProfileFactory, CheckInFactory,
+                       DropInVisitorFactory, QRCodeFactory,
+                       TrainingClassFactory)
 
 
 class TestTrainingClass:
@@ -41,7 +37,7 @@ class TestTrainingClass:
         assert tc.updated_at is not None
 
     def test_ordering_newest_first(self, db, academy):
-        past = TrainingClassFactory(
+        TrainingClassFactory(
             academy=academy,
             scheduled_at=timezone.now() - timedelta(hours=2),
         )

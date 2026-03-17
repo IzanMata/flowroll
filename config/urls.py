@@ -1,11 +1,9 @@
 from django.contrib import admin
 from django.urls import include, path
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularRedocView,
-    SpectacularSwaggerView,
-)
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.views import (SpectacularAPIView, SpectacularRedocView,
+                                   SpectacularSwaggerView)
+from rest_framework_simplejwt.views import (TokenObtainPairView,
+                                            TokenRefreshView)
 
 from config.throttles import LoginRateThrottle, TokenRefreshRateThrottle
 
@@ -23,8 +21,16 @@ class ThrottledTokenRefreshView(TokenRefreshView):
 urlpatterns = [
     path("admin/", admin.site.urls),
     # Auth — throttled (L-4 fix)
-    path("api/auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("api/auth/token/refresh/", ThrottledTokenRefreshView.as_view(), name="token_refresh"),
+    path(
+        "api/auth/token/",
+        ThrottledTokenObtainPairView.as_view(),
+        name="token_obtain_pair",
+    ),
+    path(
+        "api/auth/token/refresh/",
+        ThrottledTokenRefreshView.as_view(),
+        name="token_refresh",
+    ),
     # Domain apps
     path("api/athletes/", include("athletes.urls")),
     path("api/techniques/", include("techniques.urls")),
@@ -37,6 +43,10 @@ urlpatterns = [
     path("api/learning/", include("learning.urls")),
     # Schema
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]

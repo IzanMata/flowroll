@@ -5,7 +5,13 @@ from .models import CheckIn, DropInVisitor, QRCode, TrainingClass
 
 @admin.register(TrainingClass)
 class TrainingClassAdmin(admin.ModelAdmin):
-    list_display = ["title", "academy", "class_type", "scheduled_at", "duration_minutes"]
+    list_display = [
+        "title",
+        "academy",
+        "class_type",
+        "scheduled_at",
+        "duration_minutes",
+    ]
     list_filter = ["class_type", "academy"]
     search_fields = ["title"]
 
@@ -23,5 +29,12 @@ class QRCodeAdmin(admin.ModelAdmin):
 
 @admin.register(DropInVisitor)
 class DropInVisitorAdmin(admin.ModelAdmin):
-    list_display = ["first_name", "last_name", "email", "academy", "status", "expires_at"]
+    list_display = [
+        "first_name",
+        "last_name",
+        "email",
+        "academy",
+        "status",
+        "expires_at",
+    ]
     list_filter = ["status", "academy"]

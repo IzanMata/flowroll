@@ -1,5 +1,4 @@
 """Tests for AthleteProfile model."""
-import pytest
 
 from athletes.models import AthleteProfile
 from factories import AcademyFactory, AthleteProfileFactory, UserFactory

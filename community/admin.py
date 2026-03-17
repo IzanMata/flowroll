@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from .models import Achievement, AthleteAchievement, OpenMatRSVP, OpenMatSession
+from .models import (Achievement, AthleteAchievement, OpenMatRSVP,
+                     OpenMatSession)
 
 
 @admin.register(Achievement)

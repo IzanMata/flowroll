@@ -82,7 +82,10 @@ class Migration(migrations.Migration):
             options={
                 "ordering": ["-event_date"],
                 "indexes": [
-                    models.Index(fields=["academy", "event_date"], name="community_openmatsession_academy_event_date_idx"),
+                    models.Index(
+                        fields=["academy", "event_date"],
+                        name="community_openmatsession_academy_event_date_idx",
+                    ),
                 ],
             },
         ),
@@ -132,7 +135,10 @@ class Migration(migrations.Migration):
             options={
                 "unique_together": {("session", "athlete")},
                 "indexes": [
-                    models.Index(fields=["session", "status"], name="openmatrsvp_session_status_idx"),
+                    models.Index(
+                        fields=["session", "status"],
+                        name="openmatrsvp_session_status_idx",
+                    ),
                 ],
             },
         ),

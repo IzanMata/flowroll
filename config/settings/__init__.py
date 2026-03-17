@@ -8,6 +8,7 @@ environment variable.
 All tooling (manage.py, wsgi.py, asgi.py, celery.py, pytest) continues
 to use DJANGO_SETTINGS_MODULE=config.settings unchanged.
 """
+
 import os
 
 _env = os.environ.get("DJANGO_ENV", "development")

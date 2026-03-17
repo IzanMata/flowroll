@@ -20,5 +20,12 @@ class TimerSessionAdmin(admin.ModelAdmin):
 
 @admin.register(Matchup)
 class MatchupAdmin(admin.ModelAdmin):
-    list_display = ["athlete_a", "athlete_b", "match_format", "round_number", "status", "winner"]
+    list_display = [
+        "athlete_a",
+        "athlete_b",
+        "match_format",
+        "round_number",
+        "status",
+        "winner",
+    ]
     list_filter = ["match_format", "status"]

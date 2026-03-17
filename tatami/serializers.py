@@ -17,8 +17,14 @@ class TimerPresetSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimerPreset
         fields = [
-            "id", "academy", "name", "format", "round_duration_seconds",
-            "rest_duration_seconds", "overtime_seconds", "rounds",
+            "id",
+            "academy",
+            "name",
+            "format",
+            "round_duration_seconds",
+            "rest_duration_seconds",
+            "overtime_seconds",
+            "rounds",
         ]
 
 
@@ -35,8 +41,14 @@ class TimerSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimerSession
         fields = [
-            "id", "preset", "preset_name", "status", "current_round",
-            "started_at", "paused_at", "elapsed_seconds",
+            "id",
+            "preset",
+            "preset_name",
+            "status",
+            "current_round",
+            "started_at",
+            "paused_at",
+            "elapsed_seconds",
         ]
         read_only_fields = ["started_at", "paused_at", "elapsed_seconds"]
 
@@ -50,23 +62,39 @@ class MatchupSerializer(serializers.ModelSerializer):
     winner) remain present for writes.
     """
 
-    athlete_a_name = serializers.CharField(source="athlete_a.user.username", read_only=True)
-    athlete_b_name = serializers.CharField(source="athlete_b.user.username", read_only=True)
-    winner_name = serializers.CharField(source="winner.user.username", read_only=True, allow_null=True)
+    athlete_a_name = serializers.CharField(
+        source="athlete_a.user.username", read_only=True
+    )
+    athlete_b_name = serializers.CharField(
+        source="athlete_b.user.username", read_only=True
+    )
+    winner_name = serializers.CharField(
+        source="winner.user.username", read_only=True, allow_null=True
+    )
 
     class Meta:
         model = Matchup
         fields = [
-            "id", "academy", "athlete_a", "athlete_a_name",
-            "athlete_b", "athlete_b_name", "weight_class",
-            "match_format", "round_number", "status",
-            "winner", "winner_name", "created_at",
+            "id",
+            "academy",
+            "athlete_a",
+            "athlete_a_name",
+            "athlete_b",
+            "athlete_b_name",
+            "weight_class",
+            "match_format",
+            "round_number",
+            "status",
+            "winner",
+            "winner_name",
+            "created_at",
         ]
         read_only_fields = ["created_at"]
 
 
 class PairAthletesSerializer(serializers.Serializer):
     """Input for the pair_athletes action."""
+
     athlete_ids = serializers.ListField(child=serializers.IntegerField(), min_length=2)
     match_format = serializers.ChoiceField(choices=Matchup.MatchFormat.choices)
     weight_class_id = serializers.IntegerField(required=False, allow_null=True)

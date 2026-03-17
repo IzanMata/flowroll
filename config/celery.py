@@ -4,6 +4,7 @@ Celery application for FlowRoll.
 Discovered by Django via config/__init__.py.
 Tasks are auto-discovered from every INSTALLED_APP's tasks.py.
 """
+
 import os
 
 from celery import Celery

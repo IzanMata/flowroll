@@ -1,49 +1,55 @@
 """
 Root conftest.py — shared fixtures available across all test files.
 """
+
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 
-from academies.models import Academy
 from athletes.models import AthleteProfile
 from core.models import AcademyMembership, Belt
-from factories import (
-    AcademyFactory,
-    AcademyMembershipFactory,
-    AthleteProfileFactory,
-    UserFactory,
-)
-
+from factories import AcademyFactory, AthleteProfileFactory, UserFactory
 
 # ─── Belt fixtures ───────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def belt_white(db):
-    return Belt.objects.get_or_create(color="white", defaults={"order": 1, "description": ""})[0]
+    return Belt.objects.get_or_create(
+        color="white", defaults={"order": 1, "description": ""}
+    )[0]
 
 
 @pytest.fixture
 def belt_blue(db):
-    return Belt.objects.get_or_create(color="blue", defaults={"order": 2, "description": ""})[0]
+    return Belt.objects.get_or_create(
+        color="blue", defaults={"order": 2, "description": ""}
+    )[0]
 
 
 @pytest.fixture
 def belt_purple(db):
-    return Belt.objects.get_or_create(color="purple", defaults={"order": 3, "description": ""})[0]
+    return Belt.objects.get_or_create(
+        color="purple", defaults={"order": 3, "description": ""}
+    )[0]
 
 
 @pytest.fixture
 def belt_brown(db):
-    return Belt.objects.get_or_create(color="brown", defaults={"order": 4, "description": ""})[0]
+    return Belt.objects.get_or_create(
+        color="brown", defaults={"order": 4, "description": ""}
+    )[0]
 
 
 @pytest.fixture
 def belt_black(db):
-    return Belt.objects.get_or_create(color="black", defaults={"order": 5, "description": ""})[0]
+    return Belt.objects.get_or_create(
+        color="black", defaults={"order": 5, "description": ""}
+    )[0]
 
 
 # ─── Academy ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def academy(db):
@@ -56,6 +62,7 @@ def second_academy(db):
 
 
 # ─── Users ───────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def make_user(db):
@@ -86,17 +93,21 @@ def owner_user(db):
 
 # ─── AcademyMembership helpers ───────────────────────────────────────────────
 
+
 @pytest.fixture
 def make_membership(db):
     """Factory: make_membership(user, academy, role='STUDENT')"""
+
     def _make(user, academy, role="STUDENT"):
         return AcademyMembership.objects.create(
             user=user, academy=academy, role=role, is_active=True
         )
+
     return _make
 
 
 # ─── Athletes ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def make_athlete(db, academy, belt_white, make_user):
@@ -110,6 +121,7 @@ def make_athlete(db, academy, belt_white, make_user):
             weight=weight,
             **kwargs,
         )
+
     return _make
 
 
@@ -127,6 +139,7 @@ def professor_athlete(db, academy, professor_user):
 
 
 # ─── API Client ──────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def api_client():

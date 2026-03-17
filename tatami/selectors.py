@@ -1,6 +1,6 @@
 from django.db.models import QuerySet
 
-from .models import Matchup, TimerPreset, TimerSession, WeightClass
+from .models import Matchup, TimerPreset, TimerSession
 
 
 def get_presets_for_academy(academy_id: int) -> QuerySet:

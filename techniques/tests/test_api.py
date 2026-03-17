@@ -8,11 +8,10 @@ Covers:
   - Superusers can write techniques
   - BeltViewSet is strictly read-only (no write methods exposed)
 """
-import pytest
+
 from rest_framework import status
 
 from factories import UserFactory
-
 
 TECHNIQUES_URL = "/api/techniques/techniques/"
 BELTS_URL = "/api/techniques/belts/"
@@ -20,6 +19,7 @@ CATEGORIES_URL = "/api/techniques/categories/"
 
 
 # ─── Authentication guard ─────────────────────────────────────────────────────
+
 
 class TestTechniqueAuthGuard:
     def test_unauthenticated_technique_list_returns_401(self, api_client):
@@ -32,6 +32,7 @@ class TestTechniqueAuthGuard:
 
 
 # ─── Read access ─────────────────────────────────────────────────────────────
+
 
 class TestTechniqueReadAccess:
     def test_authenticated_user_can_list_techniques(self, auth_client):
@@ -48,6 +49,7 @@ class TestTechniqueReadAccess:
 
 
 # ─── Write restrictions ───────────────────────────────────────────────────────
+
 
 class TestTechniqueWriteRestrictions:
     def test_regular_user_cannot_create_technique(self, auth_client):
@@ -72,6 +74,7 @@ class TestTechniqueWriteRestrictions:
 
 
 # ─── Belt is read-only ────────────────────────────────────────────────────────
+
 
 class TestBeltReadOnly:
     def test_superuser_cannot_create_belt_via_api(self, db, api_client):

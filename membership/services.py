@@ -1,6 +1,7 @@
 """
 Business logic for memberships, promotions, dojo tab, and seminars.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,20 +10,13 @@ from decimal import Decimal
 from typing import Optional
 
 from django.db import transaction
-from django.db.models import F, Sum
+from django.db.models import F
 
 from athletes.models import AthleteProfile
 
-from .models import (
-    DojoTabBalance,
-    DojoTabTransaction,
-    MembershipPlan,
-    PromotionRequirement,
-    Seminar,
-    SeminarRegistration,
-    Subscription,
-)
-
+from .models import (DojoTabBalance, DojoTabTransaction, MembershipPlan,
+                     PromotionRequirement, Seminar, SeminarRegistration,
+                     Subscription)
 
 # ---------------------------------------------------------------------------
 # Subscription Service
@@ -32,12 +26,15 @@ from .models import (
 class SubscriptionService:
     @staticmethod
     @transaction.atomic
-    def subscribe(athlete: AthleteProfile, plan: MembershipPlan, start_date: date = None) -> Subscription:
+    def subscribe(
+        athlete: AthleteProfile, plan: MembershipPlan, start_date: date = None
+    ) -> Subscription:
         """Create and activate a new subscription for an athlete."""
         today = start_date or date.today()
         end_date = None
         if plan.duration_days:
             from datetime import timedelta
+
             end_date = today + timedelta(days=plan.duration_days)
 
         classes_remaining = plan.class_limit  # None for unlimited
@@ -57,7 +54,9 @@ class SubscriptionService:
     def consume_class_pass(subscription: Subscription) -> Subscription:
         """Decrement a class-pass subscription. Marks as EXPIRED when exhausted."""
         if subscription.plan.plan_type != MembershipPlan.PlanType.CLASS_PASS:
-            raise ValueError("consume_class_pass only applies to CLASS_PASS subscriptions.")
+            raise ValueError(
+                "consume_class_pass only applies to CLASS_PASS subscriptions."
+            )
         if subscription.classes_remaining is None:
             raise ValueError("This class pass has unlimited classes.")
         if subscription.classes_remaining <= 0:
@@ -210,7 +209,9 @@ class PromotionService:
             ).first()
             if req:
                 return req
-        return PromotionRequirement.objects.filter(belt=belt, academy__isnull=True).first()
+        return PromotionRequirement.objects.filter(
+            belt=belt, academy__isnull=True
+        ).first()
 
     @staticmethod
     def _compute_months_at_belt(belt_awarded_date: Optional[date]) -> int:
@@ -232,7 +233,9 @@ class DojoTabService:
 
     @staticmethod
     @transaction.atomic
-    def charge(athlete: AthleteProfile, academy, amount: Decimal, description: str) -> DojoTabTransaction:
+    def charge(
+        athlete: AthleteProfile, academy, amount: Decimal, description: str
+    ) -> DojoTabTransaction:
         """Debit the athlete's tab."""
         tx = DojoTabTransaction.objects.create(
             athlete=athlete,
@@ -246,7 +249,9 @@ class DojoTabService:
 
     @staticmethod
     @transaction.atomic
-    def credit(athlete: AthleteProfile, academy, amount: Decimal, description: str) -> DojoTabTransaction:
+    def credit(
+        athlete: AthleteProfile, academy, amount: Decimal, description: str
+    ) -> DojoTabTransaction:
         """Credit the athlete's tab (e.g. payment received)."""
         tx = DojoTabTransaction.objects.create(
             athlete=athlete,
@@ -299,9 +304,11 @@ class SeminarService:
         if seminar.status not in (Seminar.Status.OPEN, Seminar.Status.FULL):
             raise ValueError(f"Seminar '{seminar.title}' is not open for registration.")
 
-        existing = SeminarRegistration.objects.filter(
-            seminar=seminar, athlete=athlete
-        ).exclude(status=SeminarRegistration.RegistrationStatus.CANCELLED).first()
+        existing = (
+            SeminarRegistration.objects.filter(seminar=seminar, athlete=athlete)
+            .exclude(status=SeminarRegistration.RegistrationStatus.CANCELLED)
+            .first()
+        )
         if existing:
             raise ValueError("Athlete is already registered for this seminar.")
 

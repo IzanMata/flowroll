@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from django.db import transaction
 
-from .models import ClassTechniqueJournal, SparringNote, VideoLibraryItem
+from .models import ClassTechniqueJournal, SparringNote
 
 
 class TechniqueJournalService:
     @staticmethod
     @transaction.atomic
-    def log_technique(training_class, technique, professor_notes: str = "") -> ClassTechniqueJournal:
+    def log_technique(
+        training_class, technique, professor_notes: str = ""
+    ) -> ClassTechniqueJournal:
         journal, created = ClassTechniqueJournal.objects.get_or_create(
             training_class=training_class,
             technique=technique,

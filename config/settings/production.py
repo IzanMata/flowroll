@@ -3,7 +3,11 @@ Production settings.
 All secrets MUST be provided via environment variables — no fallbacks.
 Set DJANGO_ENV=production to activate.
 """
+
+import os  # noqa: F401
+
 from .base import *  # noqa: F401, F403
+from .base import REST_FRAMEWORK, TIME_ZONE  # noqa: F401
 
 # ─── C-1 fix: SECRET_KEY is required; missing var raises KeyError at startup ──
 SECRET_KEY = os.environ["SECRET_KEY"]
@@ -11,7 +15,9 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 # ─── C-2 fix: DEBUG is always False in production ─────────────────────────────
 DEBUG = False
 
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()
+]
 
 # ─── Database (all vars required in production) ───────────────────────────────
 DATABASES = {
@@ -75,7 +81,7 @@ CORS_ALLOWED_ORIGINS = [
 
 # ─── L-1: HTTPS / security headers ───────────────────────────────────────────
 SECURE_SSL_REDIRECT = True
-SECURE_HSTS_SECONDS = 31_536_000          # 1 year
+SECURE_HSTS_SECONDS = 31_536_000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_BROWSER_XSS_FILTER = True

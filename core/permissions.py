@@ -1,4 +1,4 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 from core.models import AcademyMembership
 
@@ -63,6 +63,7 @@ class IsAcademyOwner(BasePermission):
         """Used when the viewed object IS the Academy (AcademyViewSet)."""
         # Import here to avoid circular imports
         from academies.models import Academy
+
         if isinstance(obj, Academy):
             return (
                 request.user.is_superuser

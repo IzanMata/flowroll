@@ -5,16 +5,15 @@ MatchmakingService pairs athletes for either Tournament (bracket) or
 Survival (king-of-the-mat) formats, using belt level and weight as
 primary sorting criteria.
 """
+
 from __future__ import annotations
 
-import random
 from typing import List, Optional, Tuple
 
 from athletes.models import AthleteProfile
 from core.models import Belt
 
 from .models import Matchup, WeightClass
-
 
 # Belt ordering map used for numeric comparison
 BELT_ORDER = {
@@ -117,7 +116,9 @@ class MatchmakingService:
         if not remaining_challengers:
             return None
 
-        sorted_challengers = sorted(remaining_challengers, key=_athlete_score, reverse=True)
+        sorted_challengers = sorted(
+            remaining_challengers, key=_athlete_score, reverse=True
+        )
         next_challenger = sorted_challengers[0]
 
         return Matchup.objects.create(
@@ -136,9 +137,12 @@ class MatchmakingService:
     ) -> List[AthleteProfile]:
         """Return only athletes whose weight falls within the weight class range."""
         return [
-            a for a in athletes
-            if a.weight is not None
-            and weight_class.min_weight <= a.weight <= weight_class.max_weight
+            a
+            for a in athletes
+            if (
+                a.weight is not None  # noqa: W504
+                and weight_class.min_weight <= a.weight <= weight_class.max_weight
+            )
         ]
 
 
@@ -154,6 +158,7 @@ class TimerService:
         Raises ValueError if the session is not in IDLE or PAUSED state.
         """
         from django.utils import timezone
+
         if session.status not in (session.Status.IDLE, session.Status.PAUSED):
             raise ValueError(f"Cannot start a timer in '{session.status}' state.")
         session.started_at = timezone.now()
@@ -170,6 +175,7 @@ class TimerService:
         Raises ValueError if the session is not RUNNING.
         """
         from django.utils import timezone
+
         if session.status != session.Status.RUNNING:
             raise ValueError("Can only pause a running timer.")
         session.paused_at = timezone.now()

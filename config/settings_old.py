@@ -12,7 +12,11 @@ SECRET_KEY = os.environ.get(
     "django-insecure-hmq$ocvdtl9%_44i=_nymu3#cycu=*y@@^j^0xm7dl32&7@i0o",
 )
 DEBUG = os.environ.get("DEBUG", "True") == "True"
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",") if os.environ.get("ALLOWED_HOSTS") else []
+ALLOWED_HOSTS = (
+    os.environ.get("ALLOWED_HOSTS", "").split(",")
+    if os.environ.get("ALLOWED_HOSTS")
+    else []
+)
 SITE_ID = 1
 
 INSTALLED_APPS = [
@@ -131,7 +135,9 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 ).split(",")
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},

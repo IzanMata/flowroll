@@ -27,7 +27,9 @@ class Match(models.Model):
         ordering = ["-date"]
         indexes = [
             # P6 fix: list endpoint filters by academy; index makes scoping fast
-            models.Index(fields=["academy", "is_finished"], name="match_academy_finished_idx"),
+            models.Index(
+                fields=["academy", "is_finished"], name="match_academy_finished_idx"
+            ),
         ]
 
 

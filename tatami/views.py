@@ -2,7 +2,6 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from athletes.models import AthleteProfile
@@ -11,13 +10,9 @@ from core.permissions import IsAcademyMember, IsAcademyProfessor
 from . import selectors
 from .filters import MatchupFilter, TimerPresetFilter
 from .models import Matchup, TimerPreset, TimerSession, WeightClass
-from .serializers import (
-    MatchupSerializer,
-    PairAthletesSerializer,
-    TimerPresetSerializer,
-    TimerSessionSerializer,
-    WeightClassSerializer,
-)
+from .serializers import (MatchupSerializer, PairAthletesSerializer,
+                          TimerPresetSerializer, TimerSessionSerializer,
+                          WeightClassSerializer)
 from .services import MatchmakingService, TimerService
 
 
@@ -56,7 +51,9 @@ class TimerPresetViewSet(viewsets.ModelViewSet):
         preset = self.get_object()
         session = TimerSession.objects.create(preset=preset)
         TimerService.start(session)
-        return Response(TimerSessionSerializer(session).data, status=status.HTTP_201_CREATED)
+        return Response(
+            TimerSessionSerializer(session).data, status=status.HTTP_201_CREATED
+        )
 
 
 class TimerSessionViewSet(viewsets.ModelViewSet):
@@ -108,7 +105,9 @@ class MatchupViewSet(viewsets.ModelViewSet):
             self.request.query_params.get("academy", 0)
         )
 
-    @extend_schema(request=PairAthletesSerializer, responses=MatchupSerializer(many=True))
+    @extend_schema(
+        request=PairAthletesSerializer, responses=MatchupSerializer(many=True)
+    )
     @action(detail=False, methods=["post"], permission_classes=[IsAcademyProfessor])
     def pair_athletes(self, request):
         serializer = PairAthletesSerializer(data=request.data)
@@ -143,12 +142,18 @@ class MatchupViewSet(viewsets.ModelViewSet):
             weight_class = get_object_or_404(WeightClass, pk=d["weight_class_id"])
 
         if d["match_format"] == Matchup.MatchFormat.TOURNAMENT:
-            matchups = MatchmakingService.pair_for_tournament(athletes, academy, weight_class)
+            matchups = MatchmakingService.pair_for_tournament(
+                athletes, academy, weight_class
+            )
         else:
             try:
-                matchups = MatchmakingService.pair_for_survival(athletes, academy, weight_class)
+                matchups = MatchmakingService.pair_for_survival(
+                    athletes, academy, weight_class
+                )
             except ValueError as exc:
-                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
+                )
 
         return Response(
             MatchupSerializer(matchups, many=True).data, status=status.HTTP_201_CREATED

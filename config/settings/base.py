@@ -2,6 +2,7 @@
 Base settings shared across all environments.
 Never import this module directly — use development.py or production.py.
 """
+
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -112,7 +113,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "200/hour",
         "user": "2000/hour",
-        "login": "10/minute",        # custom class in config/throttles.py
+        "login": "10/minute",  # custom class in config/throttles.py
         "token_refresh": "20/minute",  # custom class in config/throttles.py
     },
 }
@@ -125,7 +126,7 @@ SPECTACULAR_SETTINGS = {
         "All endpoints require a JWT Bearer token except `POST /api/auth/token/` "
         "and `POST /api/auth/token/refresh/`.\n\n"
         "Obtain tokens:\n"
-        "```\nPOST /api/auth/token/\n{\"username\": \"alice\", \"password\": \"secret\"}\n```\n\n"
+        '```\nPOST /api/auth/token/\n{"username": "alice", "password": "secret"}\n```\n\n'
         "Attach the access token to subsequent requests:\n"
         "```\nAuthorization: Bearer <access_token>\n```\n\n"
         "Access tokens expire after **1 hour**. Refresh tokens expire after **7 days** "
@@ -160,18 +161,29 @@ SPECTACULAR_SETTINGS = {
         {"name": "academies", "description": "Academy (tenant) management"},
         {"name": "athletes", "description": "Athlete profile management"},
         {"name": "techniques", "description": "Platform-wide BJJ technique library"},
-        {"name": "attendance", "description": "Training classes, QR check-in, drop-in visitors"},
+        {
+            "name": "attendance",
+            "description": "Training classes, QR check-in, drop-in visitors",
+        },
         {"name": "matches", "description": "Live match scoring (professor only)"},
         {"name": "tatami", "description": "Live session tools: timers and matchmaking"},
-        {"name": "membership", "description": "Plans, subscriptions, promotions, seminars"},
+        {
+            "name": "membership",
+            "description": "Plans, subscriptions, promotions, seminars",
+        },
         {"name": "community", "description": "Achievements and open mat sessions"},
-        {"name": "learning", "description": "Technique journals, video library, sparring notes"},
+        {
+            "name": "learning",
+            "description": "Technique journals, video library, sparring notes",
+        },
     ],
 }
 
 # ─── Password validation ──────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},

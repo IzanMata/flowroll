@@ -1,12 +1,14 @@
 """Tests for attendance services: QRCodeService, CheckInService, DropInService."""
-import pytest
+
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from attendance.models import CheckIn, DropInVisitor, QRCode
 from attendance.services import CheckInService, DropInService, QRCodeService
-from factories import AthleteProfileFactory, AcademyFactory, QRCodeFactory, TrainingClassFactory
+from factories import (AthleteProfileFactory, QRCodeFactory,
+                       TrainingClassFactory)
 
 
 class TestQRCodeServiceGenerate:
@@ -191,6 +193,7 @@ class TestDropInService:
 
     def test_expire_stale_marks_expired(self, db, academy):
         from datetime import timedelta
+
         # Create one stale and one fresh visitor
         stale = DropInVisitor.objects.create(
             academy=academy,

@@ -4,6 +4,7 @@ Custom DRF throttle classes for FlowRoll.
 L-4 fix: Apply tight rate limits to authentication endpoints so that
 brute-force password / token attacks are slowed without affecting normal users.
 """
+
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 

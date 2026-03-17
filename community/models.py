@@ -1,6 +1,6 @@
 from django.db import models
 
-from core.mixins import TimestampMixin, TenantMixin
+from core.mixins import TenantMixin, TimestampMixin
 
 
 class Achievement(models.Model):
@@ -110,7 +110,9 @@ class OpenMatRSVP(TimestampMixin):
         unique_together = ("session", "athlete")
         indexes = [
             # P8 fix: going_count annotation filters rsvps by (session, status)
-            models.Index(fields=["session", "status"], name="openmatrsvp_session_status_idx"),
+            models.Index(
+                fields=["session", "status"], name="openmatrsvp_session_status_idx"
+            ),
         ]
 
     def __str__(self):

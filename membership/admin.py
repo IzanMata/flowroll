@@ -1,14 +1,8 @@
 from django.contrib import admin
 
-from .models import (
-    DojoTabBalance,
-    DojoTabTransaction,
-    MembershipPlan,
-    PromotionRequirement,
-    Seminar,
-    SeminarRegistration,
-    Subscription,
-)
+from .models import (DojoTabBalance, DojoTabTransaction, MembershipPlan,
+                     PromotionRequirement, Seminar, SeminarRegistration,
+                     Subscription)
 
 
 @admin.register(MembershipPlan)
@@ -25,12 +19,25 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(PromotionRequirement)
 class PromotionRequirementAdmin(admin.ModelAdmin):
-    list_display = ["belt", "academy", "min_mat_hours", "min_months_at_belt", "min_stripes_before_promotion"]
+    list_display = [
+        "belt",
+        "academy",
+        "min_mat_hours",
+        "min_months_at_belt",
+        "min_stripes_before_promotion",
+    ]
 
 
 @admin.register(DojoTabTransaction)
 class DojoTabTransactionAdmin(admin.ModelAdmin):
-    list_display = ["athlete", "academy", "transaction_type", "amount", "description", "billed"]
+    list_display = [
+        "athlete",
+        "academy",
+        "transaction_type",
+        "amount",
+        "description",
+        "billed",
+    ]
     list_filter = ["transaction_type", "billed"]
 
 
@@ -41,7 +48,14 @@ class DojoTabBalanceAdmin(admin.ModelAdmin):
 
 @admin.register(Seminar)
 class SeminarAdmin(admin.ModelAdmin):
-    list_display = ["title", "academy", "instructor_name", "event_date", "capacity", "status"]
+    list_display = [
+        "title",
+        "academy",
+        "instructor_name",
+        "event_date",
+        "capacity",
+        "status",
+    ]
     list_filter = ["status"]
 
 

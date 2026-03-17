@@ -1,9 +1,11 @@
 """Tests for Technique, TechniqueCategory, TechniqueFlow, TechniqueVariation."""
+
 import pytest
 from django.db import IntegrityError
 
-from techniques.models import Technique, TechniqueCategory, TechniqueFlow, TechniqueVariation
-from factories import TechniqueCategoryFactory, TechniqueFactory, TechniqueFlowFactory
+from factories import (TechniqueCategoryFactory, TechniqueFactory,
+                       TechniqueFlowFactory)
+from techniques.models import Technique, TechniqueFlow, TechniqueVariation
 
 
 class TestTechniqueCategory:
@@ -73,7 +75,9 @@ class TestTechniqueFlow:
     def test_from_leads_to_accessor(self, db):
         t1 = TechniqueFactory()
         t2 = TechniqueFactory()
-        TechniqueFlow.objects.create(from_technique=t1, to_technique=t2, transition_type="chain")
+        TechniqueFlow.objects.create(
+            from_technique=t1, to_technique=t2, transition_type="chain"
+        )
         assert t2 in Technique.objects.filter(comes_from__from_technique=t1)
 
     def test_unique_from_to_pair(self, db):
@@ -98,7 +102,9 @@ class TestTechniqueFlow:
 class TestTechniqueVariation:
     def test_create_variation(self, db):
         t = TechniqueFactory()
-        v = TechniqueVariation.objects.create(technique=t, name="Closed Guard Variation")
+        v = TechniqueVariation.objects.create(
+            technique=t, name="Closed Guard Variation"
+        )
         assert v.pk is not None
 
     def test_unique_per_technique(self, db):

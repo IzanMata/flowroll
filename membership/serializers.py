@@ -1,13 +1,7 @@
 from rest_framework import serializers
 
-from .models import (
-    DojoTabTransaction,
-    MembershipPlan,
-    SeminarRegistration,
-    Seminar,
-    Subscription,
-)
-from .services import PromotionReadiness
+from .models import (DojoTabTransaction, MembershipPlan, Seminar,
+                     SeminarRegistration, Subscription)
 
 
 class MembershipPlanSerializer(serializers.ModelSerializer):
@@ -16,8 +10,14 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = MembershipPlan
         fields = [
-            "id", "academy", "name", "plan_type", "price",
-            "class_limit", "duration_days", "is_active",
+            "id",
+            "academy",
+            "name",
+            "plan_type",
+            "price",
+            "class_limit",
+            "duration_days",
+            "is_active",
         ]
 
 
@@ -34,14 +34,22 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = [
-            "id", "athlete", "plan", "plan_name", "start_date",
-            "end_date", "status", "classes_remaining", "created_at",
+            "id",
+            "athlete",
+            "plan",
+            "plan_name",
+            "start_date",
+            "end_date",
+            "status",
+            "classes_remaining",
+            "created_at",
         ]
         read_only_fields = ["created_at"]
 
 
 class PromotionReadinessSerializer(serializers.Serializer):
     """Read-only serializer for the PromotionReadiness dataclass."""
+
     is_ready = serializers.BooleanField()
     mat_hours_ok = serializers.BooleanField()
     months_at_belt_ok = serializers.BooleanField()
@@ -66,8 +74,14 @@ class DojoTabTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = DojoTabTransaction
         fields = [
-            "id", "athlete", "academy", "transaction_type",
-            "amount", "description", "billed", "created_at",
+            "id",
+            "athlete",
+            "academy",
+            "transaction_type",
+            "amount",
+            "description",
+            "billed",
+            "created_at",
         ]
         read_only_fields = ["billed", "created_at"]
 
@@ -85,8 +99,16 @@ class SeminarSerializer(serializers.ModelSerializer):
     class Meta:
         model = Seminar
         fields = [
-            "id", "academy", "title", "instructor_name", "description",
-            "event_date", "capacity", "price", "status", "spots_remaining",
+            "id",
+            "academy",
+            "title",
+            "instructor_name",
+            "description",
+            "event_date",
+            "capacity",
+            "price",
+            "status",
+            "spots_remaining",
         ]
 
 
@@ -105,7 +127,14 @@ class SeminarRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = SeminarRegistration
         fields = [
-            "id", "seminar", "seminar_title", "athlete", "athlete_name",
-            "status", "payment_status", "notes", "created_at",
+            "id",
+            "seminar",
+            "seminar_title",
+            "athlete",
+            "athlete_name",
+            "status",
+            "payment_status",
+            "notes",
+            "created_at",
         ]
         read_only_fields = ["status", "created_at"]

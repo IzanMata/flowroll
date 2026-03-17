@@ -44,10 +44,14 @@ class Subscription(TimestampMixin):
         on_delete=models.CASCADE,
         related_name="subscriptions",
     )
-    plan = models.ForeignKey(MembershipPlan, on_delete=models.PROTECT, related_name="subscriptions")
+    plan = models.ForeignKey(
+        MembershipPlan, on_delete=models.PROTECT, related_name="subscriptions"
+    )
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.ACTIVE
+    )
     classes_remaining = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
@@ -121,7 +125,9 @@ class DojoTabBalance(TenantMixin):
         on_delete=models.CASCADE,
         related_name="tab_balances",
     )
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    balance = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
 
     class Meta:
         unique_together = ("athlete", "academy")
@@ -145,7 +151,9 @@ class Seminar(TenantMixin, TimestampMixin):
     event_date = models.DateField()
     capacity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.OPEN
+    )
 
     class Meta:
         ordering = ["event_date"]
@@ -174,14 +182,18 @@ class SeminarRegistration(TimestampMixin):
         PAID = "PAID", "Paid"
         REFUNDED = "REFUNDED", "Refunded"
 
-    seminar = models.ForeignKey(Seminar, on_delete=models.CASCADE, related_name="registrations")
+    seminar = models.ForeignKey(
+        Seminar, on_delete=models.CASCADE, related_name="registrations"
+    )
     athlete = models.ForeignKey(
         "athletes.AthleteProfile",
         on_delete=models.CASCADE,
         related_name="seminar_registrations",
     )
     status = models.CharField(
-        max_length=20, choices=RegistrationStatus.choices, default=RegistrationStatus.CONFIRMED
+        max_length=20,
+        choices=RegistrationStatus.choices,
+        default=RegistrationStatus.CONFIRMED,
     )
     payment_status = models.CharField(
         max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
