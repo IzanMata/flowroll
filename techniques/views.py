@@ -18,9 +18,9 @@ class TechniqueViewSet(viewsets.ModelViewSet):
     Reads are open to any authenticated user; writes require superuser.
     """
 
-    queryset = Technique.objects.prefetch_related(
-        "categories", "variations", "leads_to", "comes_from", "min_belt"
-    )
+    # P5 fix: removed "min_belt" (CharField, not a relation) and "comes_from"
+    # (reverse FK not used in the serializer) from prefetch_related.
+    queryset = Technique.objects.prefetch_related("categories", "variations", "leads_to")
     serializer_class = TechniqueSerializer
     permission_classes = [ReadOnlyOrSuperAdmin]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]

@@ -4,6 +4,8 @@ from .models import Academy
 
 
 class AcademySerializer(serializers.ModelSerializer):
+    """Serializes an Academy for list, detail, create, and update operations."""
+
     class Meta:
         model = Academy
         fields = ["id", "name", "city", "created_at"]

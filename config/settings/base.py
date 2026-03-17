@@ -118,12 +118,55 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Flowroll API",
-    "DESCRIPTION": "BJJ Academy Management SaaS API",
+    "TITLE": "FlowRoll API",
+    "DESCRIPTION": (
+        "Multi-tenant BJJ Academy Management SaaS.\n\n"
+        "## Authentication\n\n"
+        "All endpoints require a JWT Bearer token except `POST /api/auth/token/` "
+        "and `POST /api/auth/token/refresh/`.\n\n"
+        "Obtain tokens:\n"
+        "```\nPOST /api/auth/token/\n{\"username\": \"alice\", \"password\": \"secret\"}\n```\n\n"
+        "Attach the access token to subsequent requests:\n"
+        "```\nAuthorization: Bearer <access_token>\n```\n\n"
+        "Access tokens expire after **1 hour**. Refresh tokens expire after **7 days** "
+        "and are blacklisted on rotation.\n\n"
+        "## Multi-tenancy\n\n"
+        "All tenant-scoped endpoints require `?academy=<id>` (or `?academy_id=<id>` "
+        "for the athletes endpoint). The requesting user must have an active "
+        "`AcademyMembership` for the specified academy; without it the queryset "
+        "silently returns empty (tenant isolation, not a 403)."
+    ),
     "VERSION": "2.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
-    "SECURITY": [{"Bearer": []}],
+    # JWT Bearer security scheme
+    "SECURITY": [{"jwtAuth": []}],
+    "SECURITY_DEFINITIONS": {
+        "jwtAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": (
+                "JWT access token. Obtain via POST /api/auth/token/. "
+                "Include as: Authorization: Bearer <token>"
+            ),
+        }
+    },
+    # Enum name generation
+    "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
+    # Tags for grouping in Swagger UI
+    "TAGS": [
+        {"name": "auth", "description": "JWT token obtain and refresh"},
+        {"name": "academies", "description": "Academy (tenant) management"},
+        {"name": "athletes", "description": "Athlete profile management"},
+        {"name": "techniques", "description": "Platform-wide BJJ technique library"},
+        {"name": "attendance", "description": "Training classes, QR check-in, drop-in visitors"},
+        {"name": "matches", "description": "Live match scoring (professor only)"},
+        {"name": "tatami", "description": "Live session tools: timers and matchmaking"},
+        {"name": "membership", "description": "Plans, subscriptions, promotions, seminars"},
+        {"name": "community", "description": "Achievements and open mat sessions"},
+        {"name": "learning", "description": "Technique journals, video library, sparring notes"},
+    ],
 }
 
 # ─── Password validation ──────────────────────────────────────────────────────

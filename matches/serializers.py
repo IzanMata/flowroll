@@ -5,6 +5,7 @@ from .models import Match, MatchEvent
 
 
 class UserMinimalSerializer(serializers.ModelSerializer):
+    """Lightweight User representation used for athlete fields inside MatchSerializer."""
 
     class Meta:
         model = auth_models.User
@@ -12,6 +13,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
 
 
 class MatchEventSerializer(serializers.ModelSerializer):
+    """Serializes a single scoring event (points, advantage, penalty, submission) in a match."""
 
     athlete_name = serializers.ReadOnlyField(source="athlete.username")
 
@@ -29,6 +31,12 @@ class MatchEventSerializer(serializers.ModelSerializer):
 
 
 class MatchSerializer(serializers.ModelSerializer):
+    """
+    Full match representation including nested athlete details and event log.
+
+    score_a, score_b, is_finished, winner, and date are read-only — they are
+    managed by the add_event and finish_match actions, not by direct writes.
+    """
 
     events = MatchEventSerializer(many=True, read_only=True)
 

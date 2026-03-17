@@ -108,6 +108,10 @@ class OpenMatRSVP(TimestampMixin):
 
     class Meta:
         unique_together = ("session", "athlete")
+        indexes = [
+            # P8 fix: going_count annotation filters rsvps by (session, status)
+            models.Index(fields=["session", "status"], name="openmatrsvp_session_status_idx"),
+        ]
 
     def __str__(self):
         return f"{self.athlete} → {self.session} ({self.status})"

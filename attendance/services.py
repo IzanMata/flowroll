@@ -104,6 +104,12 @@ class DropInService:
         phone: str = "",
         expiry_hours: int = DEFAULT_EXPIRY_HOURS,
     ) -> DropInVisitor:
+        """
+        Create a drop-in visitor record with an ACTIVE status and a unique access token.
+
+        The access token (UUID) is auto-generated on model save. Expiry defaults to
+        24 hours from now; pass expiry_hours to override.
+        """
         expires_at = timezone.now() + timedelta(hours=expiry_hours)
         visitor = DropInVisitor.objects.create(
             academy=academy,

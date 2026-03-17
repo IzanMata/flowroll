@@ -11,6 +11,8 @@ from .services import PromotionReadiness
 
 
 class MembershipPlanSerializer(serializers.ModelSerializer):
+    """Serializes a MembershipPlan for list and detail operations."""
+
     class Meta:
         model = MembershipPlan
         fields = [
@@ -20,6 +22,13 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
+    """
+    Serializes a Subscription for list and detail operations.
+
+    plan_name is a read-only convenience field. Use SubscriptionService.subscribe()
+    to create subscriptions — do not POST to the endpoint directly.
+    """
+
     plan_name = serializers.CharField(source="plan.name", read_only=True)
 
     class Meta:
@@ -47,6 +56,13 @@ class PromotionReadinessSerializer(serializers.Serializer):
 
 
 class DojoTabTransactionSerializer(serializers.ModelSerializer):
+    """
+    Serializes a dojo tab transaction (DEBIT or CREDIT).
+
+    billed and created_at are managed by DojoTabService and are read-only.
+    Use DojoTabService.charge() or DojoTabService.credit() to create transactions.
+    """
+
     class Meta:
         model = DojoTabTransaction
         fields = [
@@ -57,6 +73,13 @@ class DojoTabTransactionSerializer(serializers.ModelSerializer):
 
 
 class SeminarSerializer(serializers.ModelSerializer):
+    """
+    Serializes a Seminar for list and detail operations.
+
+    spots_remaining is a model property (capacity − confirmed registrations)
+    exposed as a read-only field. Use SeminarService.register() to book a spot.
+    """
+
     spots_remaining = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -68,6 +91,14 @@ class SeminarSerializer(serializers.ModelSerializer):
 
 
 class SeminarRegistrationSerializer(serializers.ModelSerializer):
+    """
+    Serializes a seminar registration record.
+
+    status (CONFIRMED, WAITLISTED, CANCELLED) is managed by SeminarService
+    and is read-only. Use SeminarService.register() and cancel_registration()
+    to drive status transitions.
+    """
+
     athlete_name = serializers.CharField(source="athlete.user.username", read_only=True)
     seminar_title = serializers.CharField(source="seminar.title", read_only=True)
 

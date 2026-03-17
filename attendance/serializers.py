@@ -4,6 +4,14 @@ from .models import CheckIn, DropInVisitor, QRCode, TrainingClass
 
 
 class TrainingClassSerializer(serializers.ModelSerializer):
+    """
+    Serializes a TrainingClass for list and detail responses.
+
+    attendance_count is populated by the DB-level annotation added in
+    attendance.selectors.get_classes_for_academy() — it reads an annotated
+    integer rather than issuing a COUNT query per row (L-3 fix).
+    """
+
     professor_username = serializers.CharField(source="professor.username", read_only=True)
     # L-3 fix: read from a pre-computed annotation instead of issuing a COUNT
     # query per object (N+1 problem).  The annotation is added by
@@ -21,6 +29,13 @@ class TrainingClassSerializer(serializers.ModelSerializer):
 
 
 class QRCodeSerializer(serializers.ModelSerializer):
+    """
+    Serializes a QRCode token for the generate_qr response.
+
+    is_valid exposes the model property (is_active AND not expired) as a
+    convenience field so clients can skip the datetime comparison.
+    """
+
     is_valid = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -30,6 +45,8 @@ class QRCodeSerializer(serializers.ModelSerializer):
 
 
 class CheckInSerializer(serializers.ModelSerializer):
+    """Serializes a CheckIn record for the qr_checkin and manual_checkin responses."""
+
     athlete_username = serializers.CharField(source="athlete.user.username", read_only=True)
 
     class Meta:
@@ -50,6 +67,14 @@ class ManualCheckInSerializer(serializers.Serializer):
 
 
 class DropInVisitorSerializer(serializers.ModelSerializer):
+    """
+    Serializes a DropInVisitor for list, detail, and create operations.
+
+    access_token and status are set by DropInService on creation and are
+    read-only through the API. status transitions (PENDING → ACTIVE → EXPIRED)
+    are managed by DropInService.expire_stale() via Celery.
+    """
+
     class Meta:
         model = DropInVisitor
         fields = [

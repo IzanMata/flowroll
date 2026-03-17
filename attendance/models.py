@@ -128,7 +128,11 @@ class DropInVisitor(TimestampMixin):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
 
     class Meta:
-        indexes = [models.Index(fields=["academy", "status"])]
+        indexes = [
+            models.Index(fields=["academy", "status"]),
+            # P7 fix: expiry-sweep task filters by status + expires_at
+            models.Index(fields=["status", "expires_at"], name="dropin_status_expiry_idx"),
+        ]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} (drop-in @ {self.academy})"

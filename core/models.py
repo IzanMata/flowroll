@@ -3,6 +3,13 @@ from django.db import models
 
 
 class Belt(models.Model):
+    """
+    Reference data for BJJ belt colours in progression order.
+
+    Used as a vocabulary table for AthleteProfile.belt (CharField with choices)
+    and for promotion-requirement lookups. Managed via data migrations and the
+    Django admin — not writable through the API (BeltViewSet is read-only).
+    """
 
     class BeltColor(models.TextChoices):
         WHITE = "white", "White"

@@ -147,6 +147,12 @@ class TimerService:
 
     @staticmethod
     def start(session) -> None:
+        """
+        Start (or resume) a timer session.
+
+        Sets started_at to now and transitions status to RUNNING.
+        Raises ValueError if the session is not in IDLE or PAUSED state.
+        """
         from django.utils import timezone
         if session.status not in (session.Status.IDLE, session.Status.PAUSED):
             raise ValueError(f"Cannot start a timer in '{session.status}' state.")
@@ -156,6 +162,13 @@ class TimerService:
 
     @staticmethod
     def pause(session) -> None:
+        """
+        Pause a running timer session, accumulating elapsed seconds.
+
+        Records paused_at, transitions to PAUSED, and adds the elapsed delta
+        to elapsed_seconds so resume/finish can compute total time accurately.
+        Raises ValueError if the session is not RUNNING.
+        """
         from django.utils import timezone
         if session.status != session.Status.RUNNING:
             raise ValueError("Can only pause a running timer.")
@@ -167,5 +180,6 @@ class TimerService:
 
     @staticmethod
     def finish(session) -> None:
+        """Mark a timer session as FINISHED regardless of its current state."""
         session.status = session.Status.FINISHED
         session.save(update_fields=["status"])

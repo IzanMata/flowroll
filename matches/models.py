@@ -23,6 +23,13 @@ class Match(models.Model):
         auth_models.User, on_delete=models.SET_NULL, null=True, blank=True
     )
 
+    class Meta:
+        ordering = ["-date"]
+        indexes = [
+            # P6 fix: list endpoint filters by academy; index makes scoping fast
+            models.Index(fields=["academy", "is_finished"], name="match_academy_finished_idx"),
+        ]
+
 
 class MatchEvent(models.Model):
 

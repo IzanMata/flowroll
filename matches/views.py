@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import F
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -24,6 +25,7 @@ class MatchViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAcademyProfessor]
 
     def get_queryset(self):
+        """Return matches scoped to ?academy. Returns empty queryset if param is absent."""
         academy_id = self.request.query_params.get("academy")
         if not academy_id:
             return Match.objects.none()
@@ -33,6 +35,16 @@ class MatchViewSet(viewsets.ModelViewSet):
             .prefetch_related("events")
         )
 
+    @extend_schema(
+        request=None,
+        responses=MatchSerializer,
+        summary="Record a scoring event in a match",
+        description=(
+            "Add a POINTS, ADVANTAGE, PENALTY, or SUBMISSION event. "
+            "The athlete must be one of the two match participants. "
+            "Score increments use F() to prevent lost-update races."
+        ),
+    )
     @action(detail=True, methods=["post"])
     def add_event(self, request, pk=None):
         match = self.get_object()
@@ -66,6 +78,13 @@ class MatchViewSet(viewsets.ModelViewSet):
         match.refresh_from_db()
         return Response(MatchSerializer(match).data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        summary="Finish a match and declare the winner",
+        description=(
+            "Mark the match as finished. winner_id must be athlete_a or athlete_b; "
+            "any other value returns 400."
+        ),
+    )
     @action(detail=True, methods=["post"])
     def finish_match(self, request, pk=None):
         match = self.get_object()

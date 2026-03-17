@@ -72,7 +72,15 @@ class TrainingClassViewSet(viewsets.ModelViewSet):
         qr = QRCodeService.generate(training_class, expiry_minutes=expiry)
         return Response(QRCodeSerializer(qr).data)
 
-    @extend_schema(request=QRCheckInSerializer, responses=CheckInSerializer)
+    @extend_schema(
+        request=QRCheckInSerializer,
+        responses=CheckInSerializer,
+        summary="Self check-in via QR code scan",
+        description=(
+            "Submit a QR token to register the authenticated athlete's attendance. "
+            "Returns 400 if the token is expired, invalid, or already used by this athlete."
+        ),
+    )
     @action(detail=False, methods=["post"])
     def qr_checkin(self, request):
         serializer = QRCheckInSerializer(data=request.data)

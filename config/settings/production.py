@@ -23,6 +23,8 @@ DATABASES = {
         "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+        # P19 fix: detect stale persistent connections before use
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 

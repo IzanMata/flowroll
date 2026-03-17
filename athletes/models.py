@@ -6,6 +6,14 @@ from core.models import Belt
 
 
 class AthleteProfile(models.Model):
+    """
+    Extended profile for a BJJ practitioner, linked one-to-one with Django's User.
+
+    Stores competition-relevant data (belt, stripes, weight), cumulative training
+    metrics (mat_hours), and the coach lineage pointer used for ancestry-tree
+    rendering. mat_hours is maintained atomically by CheckInService via F()
+    expressions — never set it directly in application code.
+    """
 
     class RoleChoices(models.TextChoices):
         STUDENT = "STUDENT", "Student"
