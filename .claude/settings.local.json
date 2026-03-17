@@ -25,7 +25,8 @@
       "Bash(docker compose:*)",
       "Bash(podman compose:*)",
       "Bash(podman:*)",
-      "Bash(sleep:*)"
+      "Bash(sleep:*)",
+      "Bash(curl:*)"
     ]
   }
 }

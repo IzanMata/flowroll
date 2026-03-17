@@ -10,6 +10,9 @@ import factory.fuzzy
 from django.contrib.auth.models import User
 from django.utils import timezone
 from factory.django import DjangoModelFactory
+from faker import Faker
+
+fake = Faker()
 
 
 class AcademyFactory(DjangoModelFactory):
@@ -218,7 +221,7 @@ class SeminarRegistrationFactory(DjangoModelFactory):
     seminar = factory.SubFactory(SeminarFactory)
     athlete = factory.SubFactory(AthleteProfileFactory)
     status = "CONFIRMED"
-    payment_status = "UNPAID"
+    payment_status = "PENDING"
 
 
 class AchievementFactory(DjangoModelFactory):
@@ -261,4 +264,4 @@ class VideoLibraryItemFactory(DjangoModelFactory):
     title = factory.Sequence(lambda n: f"Video {n}")
     url = "https://youtube.com/watch?v=test"
     source = "YOUTUBE"
-    visibility = "MEMBERS_ONLY"
+    visibility = "PUBLIC"
