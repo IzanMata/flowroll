@@ -37,7 +37,8 @@ class TrainingClassViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelV
 
     def get_queryset(self):
         # SwaggerSafeMixin handles swagger_fake_view check
-        super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):
+            return super().get_queryset()
 
         # M-1 fix: Use academy scoped queryset with membership validation
         academy_id = self.get_academy_id()

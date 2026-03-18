@@ -39,7 +39,14 @@ class SwaggerSafeMixin:
         """Override this in your ViewSet and call super() first."""
         if getattr(self, "swagger_fake_view", False):
             # Return empty queryset for Swagger documentation generation
-            return self.queryset.model.objects.none()
+            # Try to get model from serializer if queryset not available
+            if hasattr(self, 'queryset') and self.queryset is not None:
+                return self.queryset.model.objects.none()
+            elif hasattr(self, 'serializer_class') and hasattr(self.serializer_class.Meta, 'model'):
+                return self.serializer_class.Meta.model.objects.none()
+            else:
+                # Fallback: return None to let parent handle it
+                return super().get_queryset()
 
         # Let the actual ViewSet handle the real queryset logic
         return super().get_queryset()

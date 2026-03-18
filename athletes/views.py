@@ -22,7 +22,8 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
 
     def get_queryset(self):
         # SwaggerSafeMixin handles swagger_fake_view check
-        super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):
+            return super().get_queryset()
 
         # H-2 fix: Enforce tenant isolation with membership validation
         # CONSISTENCY FIX: Use 'academy' parameter like other views (was 'academy_id')
@@ -47,7 +48,14 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
         if self.action in ("update", "partial_update", "destroy"):
             # For now, keep custom logic but could be extracted to permission class
             return [IsAuthenticated()]  # Will be validated in get_object
-        return [IsAcademyMember()]
+
+        # For read operations, require academy membership only if academy is specified
+        academy_id = self.kwargs.get("academy_pk") or self.request.query_params.get("academy")
+        if academy_id:
+            return [IsAcademyMember()]
+        else:
+            # If no academy specified, just require authentication
+            return [IsAuthenticated()]
 
     def get_object(self):
         obj = super().get_object()

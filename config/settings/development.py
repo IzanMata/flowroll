@@ -35,20 +35,29 @@ DATABASES = {
 # ─── Redis / Cache ────────────────────────────────────────────────────────────
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
+# Cache: usar dummy para desarrollo sin Redis
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "IGNORE_EXCEPTIONS": True,  # acceptable in dev: graceful Redis absence
-        },
-        "TIMEOUT": 300,
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     }
 }
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
+# Cache Redis alternativo (descomenta si tienes Redis)
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": REDIS_URL,
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             "IGNORE_EXCEPTIONS": True,
+#         },
+#         "TIMEOUT": 300,
+#     }
+# }
+
+# Usar sesiones de base de datos cuando Redis no está disponible
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+# SESSION_CACHE_ALIAS = "default"  # No necesario para sessions de DB
 
 # ─── Celery ───────────────────────────────────────────────────────────────────
 CELERY_BROKER_URL = REDIS_URL
@@ -63,7 +72,7 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+    "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:46255"
 ).split(",")
 
 # ─── Email ────────────────────────────────────────────────────────────────────

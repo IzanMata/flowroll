@@ -37,7 +37,8 @@ class TimerPresetViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelVie
 
     def get_queryset(self):
         # SwaggerSafeMixin handles swagger_fake_view check
-        super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):
+            return super().get_queryset()
 
         # M-4 fix: Academy-scoped timer presets
         academy_id = self.get_academy_id()
@@ -68,7 +69,8 @@ class TimerSessionViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelVi
 
     def get_queryset(self):
         # SwaggerSafeMixin handles swagger_fake_view check
-        super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):
+            return super().get_queryset()
 
         # M-4 fix: Academy-scoped timer sessions
         academy_id = self.get_academy_id()
@@ -103,7 +105,8 @@ class MatchupViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet
 
     def get_queryset(self):
         # SwaggerSafeMixin handles swagger_fake_view check
-        super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):
+            return super().get_queryset()
 
         # M-3/M-4 fix: Academy-scoped matchups
         academy_id = self.get_academy_id()

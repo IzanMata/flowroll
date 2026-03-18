@@ -24,7 +24,8 @@ class AcademyViewSet(SwaggerSafeMixin, viewsets.ModelViewSet):
         H-1 fix: SwaggerSafeMixin handles swagger_fake_view check.
         """
         # SwaggerSafeMixin handles swagger_fake_view check
-        super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):
+            return super().get_queryset()
 
         user = self.request.user
         if user.is_superuser:
