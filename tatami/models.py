@@ -141,6 +141,7 @@ class Matchup(TenantMixin, TimestampMixin):
     )
 
     class Meta:
+        ordering = ["round_number", "-created_at"]
         indexes = [models.Index(fields=["academy", "match_format", "status"])]
 
     def __str__(self):

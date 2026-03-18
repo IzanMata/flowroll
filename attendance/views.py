@@ -135,7 +135,8 @@ class DropInVisitorViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelV
 
     def get_queryset(self):
         # SwaggerSafeMixin handles swagger_fake_view check
-        super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):
+            return super().get_queryset()
 
         # M-2 fix: Verify membership before leaking PII
         if self.request.user.is_superuser:

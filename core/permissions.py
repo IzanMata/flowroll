@@ -20,6 +20,10 @@ def get_academy_scoped_queryset(queryset, user, academy_pk):
     if not academy_pk:
         return queryset.none()
 
+    # Check if user is authenticated before querying membership
+    if not user or not user.is_authenticated:
+        return queryset.none()
+
     is_member = AcademyMembership.objects.filter(
         user=user,
         academy_id=academy_pk,
@@ -36,6 +40,8 @@ class IsAcademyMember(BasePermission):
     """Allow access to any active member of the academy identified by `academy_pk` in the URL."""
 
     def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
         academy_pk = _resolve_academy_pk(view, request)
         if not academy_pk:
             return False
@@ -52,6 +58,8 @@ class IsAcademyProfessor(BasePermission):
     ALLOWED_ROLES = {AcademyMembership.Role.PROFESSOR, AcademyMembership.Role.OWNER}
 
     def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
         academy_pk = _resolve_academy_pk(view, request)
         if not academy_pk:
             return False
@@ -71,11 +79,13 @@ class IsAcademyOwner(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
         academy_pk = _resolve_academy_pk(view, request)
         if not academy_pk:
             # Defer to has_object_permission for object-detail endpoints
             # (e.g. /api/academies/{pk}/ where the object is the academy itself)
-            return request.user and request.user.is_authenticated
+            return True
         return AcademyMembership.objects.filter(
             user=request.user,
             academy_id=academy_pk,
