@@ -20,7 +20,7 @@ class ThrottledTokenRefreshView(TokenRefreshView):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # Auth — throttled (L-4 fix)
+    
     path(
         "api/auth/token/",
         ThrottledTokenObtainPairView.as_view(),

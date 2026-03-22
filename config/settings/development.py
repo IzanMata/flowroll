@@ -73,7 +73,7 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 # Allow any localhost port in dev — Flutter Web picks a random port at runtime.
 CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:46255"
+    "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:46255,http://localhost:37399"
 ).split(",")
 
 # ─── Email ────────────────────────────────────────────────────────────────────

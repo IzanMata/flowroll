@@ -130,3 +130,96 @@ class TestAcademyMutationPermissions:
             status.HTTP_403_FORBIDDEN,
             status.HTTP_404_NOT_FOUND,
         )
+
+    def test_owner_can_delete_academy(self, db, api_client, academy):
+        owner = UserFactory()
+        AcademyMembershipFactory(
+            user=owner, academy=academy, role="OWNER", is_active=True
+        )
+        api_client.force_authenticate(user=owner)
+        response = api_client.delete(academy_detail_url(academy.pk))
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    def test_student_cannot_delete_academy(self, db, api_client, academy):
+        student = UserFactory()
+        AcademyMembershipFactory(
+            user=student, academy=academy, role="STUDENT", is_active=True
+        )
+        api_client.force_authenticate(user=student)
+        response = api_client.delete(academy_detail_url(academy.pk))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ─── Retrieve detail ──────────────────────────────────────────────────────────
+
+
+class TestAcademyRetrieve:
+    def test_member_can_retrieve_own_academy(self, db, api_client, academy):
+        user = UserFactory()
+        AcademyMembershipFactory(user=user, academy=academy, role="STUDENT", is_active=True)
+        api_client.force_authenticate(user=user)
+        response = api_client.get(academy_detail_url(academy.pk))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == academy.pk
+        assert response.data["name"] == academy.name
+
+    def test_non_member_gets_404_on_detail(self, db, api_client, academy):
+        user = UserFactory()
+        api_client.force_authenticate(user=user)
+        response = api_client.get(academy_detail_url(academy.pk))
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_detail_response_contains_expected_fields(self, db, api_client, academy):
+        user = UserFactory()
+        AcademyMembershipFactory(user=user, academy=academy, role="STUDENT", is_active=True)
+        api_client.force_authenticate(user=user)
+        response = api_client.get(academy_detail_url(academy.pk))
+        assert response.status_code == status.HTTP_200_OK
+        for field in ("id", "name", "city", "country", "email", "phone", "website", "is_active", "created_at", "updated_at"):
+            assert field in response.data
+
+
+# ─── Create ───────────────────────────────────────────────────────────────────
+
+
+class TestAcademyCreate:
+    def test_authenticated_user_can_create_academy(self, db, api_client):
+        user = UserFactory()
+        api_client.force_authenticate(user=user)
+        response = api_client.post(ACADEMIES_URL, {"name": "New Dojo"})
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["name"] == "New Dojo"
+
+    def test_unauthenticated_create_returns_401(self, api_client):
+        response = api_client.post(ACADEMIES_URL, {"name": "Sneaky Dojo"})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_create_without_name_returns_400(self, db, api_client):
+        user = UserFactory()
+        api_client.force_authenticate(user=user)
+        response = api_client.post(ACADEMIES_URL, {"city": "Tokyo"})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# ─── Inactive membership ──────────────────────────────────────────────────────
+
+
+class TestAcademyInactiveMembership:
+    def test_inactive_membership_excluded_from_queryset(self, db, api_client, academy):
+        user = UserFactory()
+        AcademyMembershipFactory(
+            user=user, academy=academy, role="STUDENT", is_active=False
+        )
+        api_client.force_authenticate(user=user)
+        response = api_client.get(ACADEMIES_URL)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 0
+
+    def test_inactive_membership_blocks_detail_access(self, db, api_client, academy):
+        user = UserFactory()
+        AcademyMembershipFactory(
+            user=user, academy=academy, role="STUDENT", is_active=False
+        )
+        api_client.force_authenticate(user=user)
+        response = api_client.get(academy_detail_url(academy.pk))
+        assert response.status_code == status.HTTP_404_NOT_FOUND

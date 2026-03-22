@@ -8,6 +8,17 @@ class AcademySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Academy
-        fields = ["id", "name", "city", "created_at"]
-        # Protegemos la fecha de creación para que nadie la edite enviando un POST
-        read_only_fields = ["created_at"]
+        fields = [
+            "id",
+            "name",
+            "city",
+            "country",
+            "description",
+            "email",
+            "phone",
+            "website",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]

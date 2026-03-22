@@ -26,7 +26,17 @@
       "Bash(podman compose:*)",
       "Bash(podman:*)",
       "Bash(sleep:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings python -c \"from django.conf import settings; db=settings.DATABASES[''default'']; print\\(db.get\\(''USER''\\), db.get\\(''NAME''\\)\\)\")",
+      "Bash(psql -U izanmata -d flowroll -c \"ALTER USER izanmata CREATEDB;\")",
+      "Bash(sudo -u postgres psql -c \"ALTER USER izanmata CREATEDB;\")",
+      "Bash(pytest academies/tests/ --reuse-db -v)",
+      "Bash(createdb test_flowroll)",
+      "Bash(psql -d flowroll -c \"\\\\du izanmata\")",
+      "Bash(psql -U postgres -d postgres -c \"ALTER USER izanmata CREATEDB;\")",
+      "Bash(psql -d flowroll -c \"SELECT usename, usesuper, usecreatedb FROM pg_user;\")",
+      "Bash(pytest academies/tests/ -v)",
+      "Bash(pytest core/tests/test_auth.py -v)"
     ]
   }
 }
