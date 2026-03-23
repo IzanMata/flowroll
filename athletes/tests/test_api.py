@@ -23,6 +23,11 @@ def athlete_detail_url(pk):
     return f"{ATHLETES_URL}{pk}/"
 
 
+def athlete_scoped_url(pk, academy_pk):
+    """Detail URL with ?academy= so filter_by_academy includes the object."""
+    return f"{ATHLETES_URL}{pk}/?academy={academy_pk}"
+
+
 # ─── Authentication guard ─────────────────────────────────────────────────────
 
 
@@ -49,32 +54,30 @@ class TestAthleteQuerysetIsolation:
         )
         AthleteProfileFactory(academy=academy)
         api_client.force_authenticate(user=user)
-        response = api_client.get(f"{ATHLETES_URL}?academy_id={academy.pk}")
+        response = api_client.get(f"{ATHLETES_URL}?academy={academy.pk}")
         assert response.status_code == status.HTTP_200_OK
         assert response.data["count"] >= 1
 
     def test_non_member_cannot_see_foreign_academy_athletes(
         self, db, api_client, academy
     ):
-        """A user with no membership in `academy` gets an empty queryset, not a 403,
-        to avoid leaking the existence of the academy."""
+        """A user with no active membership is denied access (IsAcademyMember → 403)."""
         outsider = UserFactory()
         AthleteProfileFactory(academy=academy)
         api_client.force_authenticate(user=outsider)
-        response = api_client.get(f"{ATHLETES_URL}?academy_id={academy.pk}")
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["count"] == 0
+        response = api_client.get(f"{ATHLETES_URL}?academy={academy.pk}")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_inactive_member_cannot_see_athletes(self, db, api_client, academy):
+        """Inactive membership is treated as no membership (IsAcademyMember → 403)."""
         user = UserFactory()
         AcademyMembershipFactory(
             user=user, academy=academy, role="STUDENT", is_active=False
         )
         AthleteProfileFactory(academy=academy)
         api_client.force_authenticate(user=user)
-        response = api_client.get(f"{ATHLETES_URL}?academy_id={academy.pk}")
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["count"] == 0
+        response = api_client.get(f"{ATHLETES_URL}?academy={academy.pk}")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 # ─── Mutation permissions ─────────────────────────────────────────────────────
@@ -92,7 +95,7 @@ class TestAthleteProfileMutations:
         target_profile = AthleteProfileFactory(user=other_user, academy=academy)
         api_client.force_authenticate(user=owner_user)
         response = api_client.patch(
-            athlete_detail_url(target_profile.pk), {"stripes": 4}
+            athlete_scoped_url(target_profile.pk, academy.pk), {"stripes": 4}
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -103,7 +106,9 @@ class TestAthleteProfileMutations:
         )
         profile = AthleteProfileFactory(user=user, academy=academy)
         api_client.force_authenticate(user=user)
-        response = api_client.patch(athlete_detail_url(profile.pk), {"stripes": 2})
+        response = api_client.patch(
+            athlete_scoped_url(profile.pk, academy.pk), {"stripes": 2}
+        )
         assert response.status_code == status.HTTP_200_OK
 
     def test_professor_can_update_academy_athlete(self, db, api_client, academy):
@@ -114,5 +119,103 @@ class TestAthleteProfileMutations:
         )
         profile = AthleteProfileFactory(user=student_user, academy=academy)
         api_client.force_authenticate(user=prof)
-        response = api_client.patch(athlete_detail_url(profile.pk), {"stripes": 3})
+        response = api_client.patch(
+            athlete_scoped_url(profile.pk, academy.pk), {"stripes": 3}
+        )
         assert response.status_code == status.HTTP_200_OK
+
+    def test_owner_can_update_any_profile(self, db, api_client, academy):
+        owner_user = UserFactory()
+        AcademyMembershipFactory(user=owner_user, academy=academy, role="OWNER")
+        student = AthleteProfileFactory(academy=academy, stripes=0)
+        api_client.force_authenticate(user=owner_user)
+        response = api_client.patch(
+            athlete_scoped_url(student.pk, academy.pk), {"stripes": 3}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        student.refresh_from_db()
+        assert student.stripes == 3
+
+    def test_superuser_can_update_any_profile(self, db, api_client):
+        superuser = UserFactory(is_superuser=True, is_staff=True)
+        athlete = AthleteProfileFactory(belt="white")
+        api_client.force_authenticate(user=superuser)
+        response = api_client.patch(
+            athlete_scoped_url(athlete.pk, athlete.academy.pk), {"belt": "black"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        athlete.refresh_from_db()
+        assert athlete.belt == "black"
+
+    def test_unauthenticated_update_returns_401(self, db, api_client):
+        athlete = AthleteProfileFactory()
+        response = api_client.patch(athlete_detail_url(athlete.pk), {"stripes": 1})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ─── Destroy permissions ──────────────────────────────────────────────────────
+
+
+class TestAthleteDestroyPermissions:
+    def test_user_can_delete_own_profile(self, db, api_client, academy):
+        from athletes.models import AthleteProfile
+        user = UserFactory()
+        AcademyMembershipFactory(user=user, academy=academy, role="STUDENT")
+        athlete = AthleteProfileFactory(user=user, academy=academy)
+        api_client.force_authenticate(user=user)
+        response = api_client.delete(athlete_scoped_url(athlete.pk, academy.pk))
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not AthleteProfile.objects.filter(pk=athlete.pk).exists()
+
+    def test_student_cannot_delete_other_athletes_profile(self, db, api_client, academy):
+        from athletes.models import AthleteProfile
+        student_user = UserFactory()
+        AcademyMembershipFactory(user=student_user, academy=academy, role="STUDENT")
+        target = AthleteProfileFactory(academy=academy)
+        api_client.force_authenticate(user=student_user)
+        response = api_client.delete(athlete_scoped_url(target.pk, academy.pk))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert AthleteProfile.objects.filter(pk=target.pk).exists()
+
+    def test_professor_can_delete_student_profile(self, db, api_client, academy):
+        from athletes.models import AthleteProfile
+        professor_user = UserFactory()
+        AcademyMembershipFactory(user=professor_user, academy=academy, role="PROFESSOR")
+        student = AthleteProfileFactory(academy=academy)
+        api_client.force_authenticate(user=professor_user)
+        response = api_client.delete(athlete_scoped_url(student.pk, academy.pk))
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not AthleteProfile.objects.filter(pk=student.pk).exists()
+
+    def test_superuser_can_delete_any_profile(self, db, api_client):
+        from athletes.models import AthleteProfile
+        superuser = UserFactory(is_superuser=True, is_staff=True)
+        athlete = AthleteProfileFactory()
+        api_client.force_authenticate(user=superuser)
+        response = api_client.delete(athlete_scoped_url(athlete.pk, athlete.academy.pk))
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not AthleteProfile.objects.filter(pk=athlete.pk).exists()
+
+
+# ─── Serializer fields ────────────────────────────────────────────────────────
+
+
+class TestAthleteSerializerFields:
+    def test_response_contains_username_and_email(self, db, api_client, academy):
+        user = UserFactory(username="fighter", email="fighter@bjj.com")
+        AcademyMembershipFactory(user=user, academy=academy, role="STUDENT")
+        athlete = AthleteProfileFactory(user=user, academy=academy)
+        api_client.force_authenticate(user=user)
+        response = api_client.get(athlete_scoped_url(athlete.pk, academy.pk))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["username"] == "fighter"
+        assert response.data["email"] == "fighter@bjj.com"
+
+    def test_response_contains_academy_detail(self, db, api_client, academy):
+        user = UserFactory()
+        AcademyMembershipFactory(user=user, academy=academy, role="STUDENT")
+        athlete = AthleteProfileFactory(user=user, academy=academy)
+        api_client.force_authenticate(user=user)
+        response = api_client.get(athlete_scoped_url(athlete.pk, academy.pk))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["academy_detail"]["id"] == academy.pk

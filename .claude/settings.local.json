@@ -36,7 +36,9 @@
       "Bash(psql -U postgres -d postgres -c \"ALTER USER izanmata CREATEDB;\")",
       "Bash(psql -d flowroll -c \"SELECT usename, usesuper, usecreatedb FROM pg_user;\")",
       "Bash(pytest academies/tests/ -v)",
-      "Bash(pytest core/tests/test_auth.py -v)"
+      "Bash(pytest core/tests/test_auth.py -v)",
+      "Bash(pytest athletes/tests.py -v)",
+      "Bash(pytest athletes/tests/ -v)"
     ]
   }
 }

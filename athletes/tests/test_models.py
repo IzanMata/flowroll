@@ -1,12 +1,17 @@
 """Tests for AthleteProfile model."""
 
+import pytest
+
 from athletes.models import AthleteProfile
 from factories import AcademyFactory, AthleteProfileFactory, UserFactory
 
 
 class TestAthleteProfile:
     def test_create_athlete(self, db):
-        athlete = AthleteProfileFactory()
+        # Use ORM directly to exercise model defaults, not the factory's FuzzyChoice values
+        user = UserFactory()
+        academy = AcademyFactory()
+        athlete = AthleteProfile.objects.create(user=user, academy=academy)
         assert athlete.pk is not None
         assert athlete.belt == "white"
         assert athlete.stripes == 0
@@ -34,7 +39,8 @@ class TestAthleteProfile:
             assert a.belt == belt
 
     def test_stripes_default_zero(self, db):
-        athlete = AthleteProfileFactory()
+        user = UserFactory()
+        athlete = AthleteProfile.objects.create(user=user, academy=AcademyFactory())
         assert athlete.stripes == 0
 
     def test_weight_can_be_null(self, db):
@@ -42,7 +48,8 @@ class TestAthleteProfile:
         assert athlete.weight is None
 
     def test_mat_hours_default_zero(self, db):
-        athlete = AthleteProfileFactory()
+        user = UserFactory()
+        athlete = AthleteProfile.objects.create(user=user, academy=AcademyFactory())
         assert athlete.mat_hours == 0.0
 
     def test_get_lineage_no_coach(self, db):
@@ -68,7 +75,8 @@ class TestAthleteProfile:
         a = AthleteProfileFactory()
         b = AthleteProfileFactory(coach=a)
         assert b.coach == a
-        assert a in b.students.all()
+        # a is the coach, so b appears in a.students (not b.students)
+        assert b in a.students.all()
 
     def test_cascade_delete_user_removes_profile(self, db):
         athlete = AthleteProfileFactory()
@@ -81,3 +89,32 @@ class TestAthleteProfile:
         athlete.academy.delete()
         athlete.refresh_from_db()
         assert athlete.academy is None
+
+    def test_default_role_is_student(self, db):
+        user = UserFactory()
+        academy = AcademyFactory()
+        athlete = AthleteProfile.objects.create(user=user, academy=academy)
+        assert athlete.role == AthleteProfile.RoleChoices.STUDENT
+
+    def test_role_choices(self):
+        roles = {r for r, _ in AthleteProfile.RoleChoices.choices}
+        assert roles == {"STUDENT", "PROFESSOR"}
+
+    def test_one_user_one_profile(self, db):
+        from django.db import IntegrityError
+
+        user = UserFactory()
+        academy = AcademyFactory()
+        AthleteProfile.objects.create(user=user, academy=academy)
+        with pytest.raises(IntegrityError):
+            AthleteProfile.objects.create(user=user, academy=AcademyFactory())
+
+    def test_get_lineage_circular_reference_does_not_loop(self, db):
+        """M-9 fix: circular coach references must terminate without RecursionError."""
+        a = AthleteProfileFactory(coach=None)
+        b = AthleteProfileFactory(coach=a)
+        a.coach = b
+        a.save()
+
+        lineage = b.get_lineage()
+        assert len(lineage) <= 2
