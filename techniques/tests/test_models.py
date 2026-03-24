@@ -19,13 +19,13 @@ class TestTechniqueCategory:
         assert cat.slug == "guard-passes"
 
     def test_name_is_unique(self, db):
-        TechniqueCategoryFactory(name="Submissions")
+        TechniqueCategoryFactory(name="Test Category")
         with pytest.raises(IntegrityError):
-            TechniqueCategoryFactory(name="Submissions")
+            TechniqueCategoryFactory(name="Test Category")
 
     def test_str_is_name(self, db):
-        cat = TechniqueCategoryFactory(name="Takedowns")
-        assert str(cat) == "Takedowns"
+        cat = TechniqueCategoryFactory(name="Test Takedowns")
+        assert str(cat) == "Test Takedowns"
 
 
 class TestTechnique:
@@ -48,9 +48,10 @@ class TestTechnique:
         assert t.min_belt == "white"
 
     def test_categories_many_to_many(self, db):
-        t = TechniqueFactory()
-        c1 = TechniqueCategoryFactory()
-        c2 = TechniqueCategoryFactory()
+        t = TechniqueFactory(categories=[])  # Disable auto-generated categories
+        t.categories.clear()  # Ensure no pre-existing categories
+        c1 = TechniqueCategoryFactory(name="Test Category A")
+        c2 = TechniqueCategoryFactory(name="Test Category B")
         t.categories.add(c1, c2)
         assert t.categories.count() == 2
 

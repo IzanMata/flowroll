@@ -31,9 +31,6 @@ createsuperuser:
 	$(MANAGE) createsuperuser
 
 test:
-	$(MANAGE) test
-
-pytest:
 	$(VENV)/bin/pytest
 
 pytest-cov:

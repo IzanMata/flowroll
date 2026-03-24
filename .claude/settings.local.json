@@ -38,7 +38,14 @@
       "Bash(pytest academies/tests/ -v)",
       "Bash(pytest core/tests/test_auth.py -v)",
       "Bash(pytest athletes/tests.py -v)",
-      "Bash(pytest athletes/tests/ -v)"
+      "Bash(pytest athletes/tests/ -v)",
+      "Bash(venv/bin/pytest academies/tests/test_api.py::TestAcademyListIsolation::test_member_sees_own_academy -v)",
+      "Bash(venv/bin/pytest techniques/tests/test_api.py::TestTechniqueReadAccess::test_authenticated_user_can_list_techniques -v)",
+      "Bash(venv/bin/pytest attendance/tests/test_api.py::TestGenerateQR::test_professor_can_generate_qr -v)",
+      "Bash(venv/bin/pytest techniques/tests/test_models.py::TestTechniqueCategory::test_name_is_unique -v)",
+      "Bash(venv/bin/pytest techniques/tests/test_models.py::TestTechniqueCategory -v)",
+      "Bash(venv/bin/pytest attendance/tests/test_security.py::TestDropInVisitorPermissions::test_professor_can_create_drop_in_visitor -v)",
+      "Bash(venv/bin/pytest techniques/tests/test_models.py::TestTechnique::test_categories_many_to_many -v)"
     ]
   }
 }

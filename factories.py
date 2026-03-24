@@ -38,6 +38,7 @@ class BeltFactory(DjangoModelFactory):
 class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
+        skip_postgeneration_save = True
 
     username = factory.Sequence(lambda n: f"user{n}")
     email = factory.LazyAttribute(lambda o: f"{o.username}@example.com")
@@ -79,6 +80,7 @@ class TechniqueCategoryFactory(DjangoModelFactory):
 class TechniqueFactory(DjangoModelFactory):
     class Meta:
         model = "techniques.Technique"
+        skip_postgeneration_save = True
 
     name = factory.Sequence(lambda n: f"Technique {n}")
     description = factory.Faker("paragraph")
