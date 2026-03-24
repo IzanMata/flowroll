@@ -5,5 +5,19 @@
   },
   "env": {
     "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command // empty' | { read -r cmd; if [[ $cmd == git* ]]; then git config user.email \"matadiazizan@gmail.com\" && git config user.name \"izanmata\"; fi; } 2>/dev/null || true",
+            "statusMessage": "Configuring git user settings..."
+          }
+        ]
+      }
+    ]
   }
 }
