@@ -16,9 +16,9 @@ def get_upcoming_open_mats(academy_id: int) -> QuerySet:
             is_cancelled=False,
         )
         .annotate(
-            going_count=Count(
+            annotated_going_count=Count(
                 "rsvps",
-                filter=Q(rsvps__status=OpenMatRSVP.RSVPStatus.GOING),
+                filter=Q(rsvps__status=OpenMatRSVP.Status.GOING),
                 distinct=True,
             )
         )

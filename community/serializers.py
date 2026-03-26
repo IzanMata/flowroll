@@ -39,13 +39,13 @@ class OpenMatSessionSerializer(serializers.ModelSerializer):
     """
     Serializes an open mat session for list and detail responses.
 
-    going_count is populated by the DB-level annotation added in
+    going_count is populated by the DB-level annotation (annotated_going_count) added in
     community.selectors.get_upcoming_open_mats() — it is an annotated
     integer, not a property call, so the list endpoint issues only one query
     regardless of how many sessions are returned (P1 N+1 fix).
     """
 
-    going_count = serializers.IntegerField(read_only=True)
+    going_count = serializers.IntegerField(source='annotated_going_count', read_only=True)
 
     class Meta:
         model = OpenMatSession

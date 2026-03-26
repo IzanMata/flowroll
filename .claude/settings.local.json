@@ -45,7 +45,13 @@
       "Bash(venv/bin/pytest techniques/tests/test_models.py::TestTechniqueCategory::test_name_is_unique -v)",
       "Bash(venv/bin/pytest techniques/tests/test_models.py::TestTechniqueCategory -v)",
       "Bash(venv/bin/pytest attendance/tests/test_security.py::TestDropInVisitorPermissions::test_professor_can_create_drop_in_visitor -v)",
-      "Bash(venv/bin/pytest techniques/tests/test_models.py::TestTechnique::test_categories_many_to_many -v)"
+      "Bash(venv/bin/pytest techniques/tests/test_models.py::TestTechnique::test_categories_many_to_many -v)",
+      "Skill(update-config)",
+      "Bash(jq:*)",
+      "Bash(chmod:*)",
+      "Bash(git commit:*)",
+      "Bash(python:*)",
+      "Bash(timeout 30 pytest community/tests/test_models.py community/tests/test_services.py community/tests/test_selectors.py community/tests/test_serializers.py)"
     ]
   }
 }
