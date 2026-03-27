@@ -78,20 +78,25 @@ class IsAcademyOwner(BasePermission):
     and with AcademyViewSet where the object IS the academy (has_object_permission).
     """
 
+    # Detail actions where has_object_permission() is guaranteed to run.
+    _DETAIL_ACTIONS = {"retrieve", "update", "partial_update", "destroy"}
+
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
         academy_pk = _resolve_academy_pk(view, request)
-        if not academy_pk:
-            # Defer to has_object_permission for object-detail endpoints
-            # (e.g. /api/academies/{pk}/ where the object is the academy itself)
-            return True
-        return AcademyMembership.objects.filter(
-            user=request.user,
-            academy_id=academy_pk,
-            role=AcademyMembership.Role.OWNER,
-            is_active=True,
-        ).exists()
+        if academy_pk:
+            return AcademyMembership.objects.filter(
+                user=request.user,
+                academy_id=academy_pk,
+                role=AcademyMembership.Role.OWNER,
+                is_active=True,
+            ).exists()
+        # No academy_pk: only defer to has_object_permission() on detail
+        # actions where get_object() guarantees check_object_permissions()
+        # will be called. Deny list/create actions to prevent bypass.
+        action = getattr(view, "action", None)
+        return action in self._DETAIL_ACTIONS
 
     def has_object_permission(self, request, view, obj):
         """Used when the viewed object IS the Academy (AcademyViewSet)."""

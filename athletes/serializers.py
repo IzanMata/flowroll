@@ -32,3 +32,4 @@ class AthleteProfileSerializer(serializers.ModelSerializer):
             "belt",
             "stripes",
         ]
+        read_only_fields = ["user"]

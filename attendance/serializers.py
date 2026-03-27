@@ -82,6 +82,17 @@ class CheckInSerializer(serializers.ModelSerializer):
         read_only_fields = ["checked_in_at"]
 
 
+class GenerateQRSerializer(serializers.Serializer):
+    """Input serializer for QR code generation. Rejects out-of-range expiry values."""
+
+    expiry_minutes = serializers.IntegerField(
+        default=30,
+        min_value=1,
+        max_value=1440,
+        help_text="QR code lifetime in minutes (1–1440). Defaults to 30.",
+    )
+
+
 class QRCheckInSerializer(serializers.Serializer):
     """Input serializer for QR-based check-in."""
 
@@ -91,8 +102,8 @@ class QRCheckInSerializer(serializers.Serializer):
 class ManualCheckInSerializer(serializers.Serializer):
     """Input serializer for professor-triggered manual check-in."""
 
-    athlete_id = serializers.IntegerField()
-    training_class_id = serializers.IntegerField()
+    athlete_id = serializers.IntegerField(min_value=1)
+    training_class_id = serializers.IntegerField(min_value=1)
 
 
 class DropInVisitorSerializer(serializers.ModelSerializer):

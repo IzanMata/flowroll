@@ -1,4 +1,5 @@
 from django.contrib.auth import models as auth_models
+from django.core.validators import MinValueValidator
 from rest_framework import serializers
 
 from .models import Match, MatchEvent
@@ -9,13 +10,17 @@ class UserMinimalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = auth_models.User
-        fields = ["id", "username"]
+        fields = ["username"]
 
 
 class MatchEventSerializer(serializers.ModelSerializer):
     """Serializes a single scoring event (points, advantage, penalty, submission) in a match."""
 
     athlete_name = serializers.ReadOnlyField(source="athlete.username")
+    points_awarded = serializers.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+    )
 
     class Meta:
         model = MatchEvent

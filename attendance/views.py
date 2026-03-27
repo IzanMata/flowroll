@@ -13,13 +13,10 @@ from . import selectors
 from .filters import TrainingClassFilter
 from .models import DropInVisitor, TrainingClass
 from .serializers import (CheckInSerializer, DropInVisitorSerializer,
-                          ManualCheckInSerializer, QRCheckInSerializer,
-                          QRCodeSerializer, TrainingClassSerializer)
+                          GenerateQRSerializer, ManualCheckInSerializer,
+                          QRCheckInSerializer, QRCodeSerializer,
+                          TrainingClassSerializer)
 from .services import CheckInService, DropInService, QRCodeService
-
-# Maximum QR code lifetime a professor can request (24 hours)
-_MAX_QR_EXPIRY_MINUTES = 1440
-_MIN_QR_EXPIRY_MINUTES = 1
 
 
 class TrainingClassViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet):
@@ -51,14 +48,16 @@ class TrainingClassViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelV
             return selectors.get_classes_for_academy(academy_id=academy_id)
         return validated_queryset
 
-    @extend_schema(request=None, responses=QRCodeSerializer)
+    @extend_schema(request=GenerateQRSerializer, responses=QRCodeSerializer)
     @action(detail=True, methods=["post"], permission_classes=[IsAcademyProfessor])
     def generate_qr(self, request, pk=None):
+        input_serializer = GenerateQRSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
         training_class = self.get_object()
-        # M-7 fix: clamp expiry to a safe range to prevent near-permanent QR codes
-        raw_expiry = int(request.data.get("expiry_minutes", 30))
-        expiry = max(_MIN_QR_EXPIRY_MINUTES, min(raw_expiry, _MAX_QR_EXPIRY_MINUTES))
-        qr = QRCodeService.generate(training_class, expiry_minutes=expiry)
+        qr = QRCodeService.generate(
+            training_class,
+            expiry_minutes=input_serializer.validated_data["expiry_minutes"],
+        )
         return Response(QRCodeSerializer(qr).data)
 
     @extend_schema(
