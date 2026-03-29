@@ -13,12 +13,21 @@ class QRCodeService:
     """Handles generation and validation of check-in QR codes."""
 
     DEFAULT_EXPIRY_MINUTES = 30
+    MIN_EXPIRY_MINUTES = 1
+    MAX_EXPIRY_MINUTES = 1440  # 24 hours
 
     @staticmethod
     def generate(
         training_class: TrainingClass, expiry_minutes: int = DEFAULT_EXPIRY_MINUTES
     ) -> QRCode:
-        """Create (or refresh) the QR code for a training class."""
+        """Create (or refresh) the QR code for a training class.
+
+        expiry_minutes is clamped to [MIN_EXPIRY_MINUTES, MAX_EXPIRY_MINUTES].
+        """
+        expiry_minutes = max(
+            QRCodeService.MIN_EXPIRY_MINUTES,
+            min(QRCodeService.MAX_EXPIRY_MINUTES, expiry_minutes),
+        )
         expires_at = timezone.now() + timedelta(minutes=expiry_minutes)
         qr, created = QRCode.objects.update_or_create(
             training_class=training_class,

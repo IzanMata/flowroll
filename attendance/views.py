@@ -42,11 +42,19 @@ class TrainingClassViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelV
         if self.request.user.is_superuser and academy_id:
             return selectors.get_classes_for_academy(academy_id=academy_id)
 
-        # For regular users, validate membership and return scoped queryset
-        validated_queryset = self.get_academy_scoped_queryset(TrainingClass.objects.all())
-        if academy_id and validated_queryset is not TrainingClass.objects.none():
-            return selectors.get_classes_for_academy(academy_id=academy_id)
-        return validated_queryset
+        if not academy_id:
+            return TrainingClass.objects.none()
+
+        # For regular users, validate membership before returning data
+        from core.models import AcademyMembership
+        is_member = AcademyMembership.objects.filter(
+            user=self.request.user,
+            academy_id=academy_id,
+            is_active=True,
+        ).exists()
+        if not is_member:
+            return TrainingClass.objects.none()
+        return selectors.get_classes_for_academy(academy_id=academy_id)
 
     @extend_schema(request=GenerateQRSerializer, responses=QRCodeSerializer)
     @action(detail=True, methods=["post"], permission_classes=[IsAcademyProfessor])

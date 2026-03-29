@@ -1,3 +1,5 @@
+import sys
+
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 from django.db import transaction
@@ -9,6 +11,10 @@ def auto_seed(sender, **kwargs):
 
     # Only fire once (when core app migrates)
     if sender.name != "core":
+        return
+
+    # Skip seeding during test runs to avoid polluting the test database
+    if "pytest" in sys.modules:
         return
 
     print("🥋 FlowRoll: seeding database...")

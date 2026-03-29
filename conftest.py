@@ -65,9 +65,11 @@ def make_user(db):
 def make_athlete(db):
     """Factory for creating athlete profiles."""
     def _make_athlete(belt=None, stripes=0, weight=70.0, **kwargs):
-        # Ensure we have a belt instance
         if belt is None:
             belt = "white"
+        elif hasattr(belt, "color"):
+            # Accept Belt model instances — extract the color string
+            belt = belt.color
 
         return AthleteProfileFactory(
             belt=belt,

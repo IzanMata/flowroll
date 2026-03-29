@@ -108,6 +108,8 @@ class Matchup(TenantMixin, TimestampMixin):
         COMPLETED = "COMPLETED", "Completed"
         CANCELLED = "CANCELLED", "Cancelled"
 
+    MatchStatus = Status  # alias used in tests
+
     athlete_a = models.ForeignKey(
         "athletes.AthleteProfile",
         on_delete=models.CASCADE,
