@@ -149,11 +149,20 @@ class DropInVisitorViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelV
         if self.request.user.is_superuser:
             return self.filter_by_academy(DropInVisitor.objects.all())
 
-        # For regular users, validate membership and return scoped queryset
-        validated_queryset = self.get_academy_scoped_queryset(DropInVisitor.objects.all())
-        if validated_queryset is not DropInVisitor.objects.none():
-            return self.filter_by_academy(DropInVisitor.objects.all())
-        return validated_queryset
+        # SEC-3 fix: explicit membership check instead of broken identity comparison
+        academy_id = self.get_academy_id()
+        if not academy_id:
+            return DropInVisitor.objects.none()
+
+        from core.models import AcademyMembership
+        is_member = AcademyMembership.objects.filter(
+            user=self.request.user,
+            academy_id=academy_id,
+            is_active=True,
+        ).exists()
+        if not is_member:
+            return DropInVisitor.objects.none()
+        return DropInVisitor.objects.filter(academy_id=academy_id)
 
     def get_permissions(self):
         # M-2 fix: only professors/owners may register new drop-in visitors
@@ -162,13 +171,23 @@ class DropInVisitorViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelV
         return [IsAcademyMember()]
 
     def create(self, request, *args, **kwargs):
+        # SEC-2 fix: derive academy from the authenticated query param, not the
+        # request body, to prevent IDOR (attacker supplying a foreign academy PK).
+        academy_id = self.get_academy_id()
+        if not academy_id:
+            return Response(
+                {"detail": "academy query param is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from academies.models import Academy
+
+        academy = get_object_or_404(Academy, pk=academy_id)
+
         serializer = DropInVisitorSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
 
-        from academies.models import Academy
-
-        academy = get_object_or_404(Academy, pk=d["academy"].pk)
         visitor = DropInService.register(
             academy=academy,
             first_name=d["first_name"],

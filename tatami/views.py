@@ -101,7 +101,12 @@ class MatchupViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet
     serializer_class = MatchupSerializer
     filterset_class = MatchupFilter
     ordering_fields = ["round_number", "created_at"]
-    permission_classes = [IsAcademyMember]
+
+    def get_permissions(self):
+        # SEC-4 fix: only professors/owners may create, update, or delete matchups
+        if self.request.method in ("GET", "HEAD", "OPTIONS"):
+            return [IsAcademyMember()]
+        return [IsAcademyProfessor()]
 
     def get_queryset(self):
         # SwaggerSafeMixin handles swagger_fake_view check

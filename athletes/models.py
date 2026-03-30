@@ -1,4 +1,5 @@
 from django.contrib.auth import models as auth_models
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from academies.models import Academy
@@ -40,10 +41,14 @@ class AthleteProfile(models.Model):
     belt = models.CharField(
         max_length=20, choices=Belt.BeltColor.choices, default=Belt.BeltColor.WHITE
     )
-    stripes = models.IntegerField(default=0)
+    stripes = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(4)],
+    )
     weight = models.FloatField(
         null=True,
         blank=True,
+        validators=[MinValueValidator(0.1)],
         help_text="Body weight in kilograms, used for matchmaking.",
     )
     mat_hours = models.FloatField(
@@ -62,16 +67,23 @@ class AthleteProfile(models.Model):
             f"({self.academy.name if self.academy else 'No Academy'})"
         )
 
+    MAX_LINEAGE_DEPTH = 100  # SEC-7: cap traversal to prevent DoS on deep chains
+
     def get_lineage(self) -> list:
         """Return the ancestry chain from this athlete up to the root instructor.
 
         M-9 fix: track visited nodes to break out of circular coach references
         (e.g. A.coach=B, B.coach=A) that would otherwise loop forever.
+        SEC-7 fix: hard depth cap to prevent DoS on pathologically long chains.
         """
         chain = []
         visited_ids: set = set()
         current = self.coach
-        while current is not None and current.pk not in visited_ids:
+        while (
+            current is not None
+            and current.pk not in visited_ids
+            and len(chain) < self.MAX_LINEAGE_DEPTH
+        ):
             visited_ids.add(current.pk)
             chain.append(current)
             current = current.coach
