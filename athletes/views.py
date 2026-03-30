@@ -45,8 +45,11 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
         Write operations require academy membership (enforced here) plus
         ownership-or-professor validation (enforced in get_object).
         Read operations also require academy membership when academy is specified.
+        Superusers bypass academy membership checks.
         """
         if self.action in ("update", "partial_update", "destroy"):
+            if self.request.user.is_superuser:
+                return [IsAuthenticated()]
             return [IsAcademyMember()]
 
         # For read operations, require academy membership only if academy is specified

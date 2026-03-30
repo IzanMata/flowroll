@@ -5,6 +5,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from rest_framework.permissions import IsAuthenticated
+
 from core.permissions import IsAcademyProfessor
 
 from .models import Match, MatchEvent
@@ -23,6 +25,13 @@ class MatchViewSet(viewsets.ModelViewSet):
 
     serializer_class = MatchSerializer
     permission_classes = [IsAcademyProfessor]
+
+    def get_permissions(self):
+        # When no academy param is provided, require only authentication;
+        # get_queryset() will return an empty queryset in that case.
+        if not self.request.query_params.get("academy"):
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     def get_queryset(self):
         """Return matches scoped to ?academy. Returns empty queryset if param is absent."""

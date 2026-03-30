@@ -24,20 +24,23 @@ class TechniqueCategory(models.Model):
         return self.name
 
 
-# TODO
-# difficulty podría ser un PositiveSmallIntegerField con choices (1-5 estrellas, por ejemplo).
-# Considerar agregar:
-# type o category directo aquí para filtrar técnicas sin JOIN con techniques_technique_categories.
-# gi_allowed y no_gi_allowed booleanos si quieres filtrar según modalidad.
-# Si quieres soporte internacional, añadir campos name_en, description_en para traducciones.
-
-
 class Technique(TimestampMixin, models.Model):
+
+    class DifficultyLevel(models.IntegerChoices):
+        ONE = 1, "1 Star"
+        TWO = 2, "2 Stars"
+        THREE = 3, "3 Stars"
+        FOUR = 4, "4 Stars"
+        FIVE = 5, "5 Stars"
+
     name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
     categories = models.ManyToManyField("TechniqueCategory", related_name="techniques")
     description = models.TextField(blank=True)
-    difficulty = models.IntegerField(default=1)
+    difficulty = models.PositiveSmallIntegerField(
+        choices=DifficultyLevel.choices,
+        default=DifficultyLevel.ONE,
+    )
     min_belt = models.CharField(
         max_length=10,
         choices=Belt.BeltColor.choices,

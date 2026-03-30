@@ -83,13 +83,11 @@ class CheckInSerializer(serializers.ModelSerializer):
 
 
 class GenerateQRSerializer(serializers.Serializer):
-    """Input serializer for QR code generation. Rejects out-of-range expiry values."""
+    """Input serializer for QR code generation. Values are clamped to 1–1440."""
 
     expiry_minutes = serializers.IntegerField(
         default=30,
-        min_value=1,
-        max_value=1440,
-        help_text="QR code lifetime in minutes (1–1440). Defaults to 30.",
+        help_text="QR code lifetime in minutes. Clamped to 1–1440. Defaults to 30.",
     )
 
 

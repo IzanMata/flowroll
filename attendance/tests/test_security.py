@@ -164,13 +164,17 @@ class TestDropInVisitorPermissions:
         prof = UserFactory(username="dropin_prof")
         AMF(user=prof, academy=academy, role="PROFESSOR", is_active=True)
         api_client.force_authenticate(user=prof)
+        from django.utils import timezone
+        from datetime import timedelta
+
         response = api_client.post(
-            "/api/attendance/drop-ins/",
+            f"/api/attendance/drop-ins/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "first_name": "Guest",
                 "last_name": "Person",
                 "email": "guest@example.com",
+                "expires_at": (timezone.now() + timedelta(hours=24)).isoformat(),
             },
             format="json",
         )

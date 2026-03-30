@@ -44,7 +44,7 @@ class TestTechnique:
             TechniqueFactory(name="Armbar")
 
     def test_default_min_belt_is_white(self, db):
-        t = TechniqueFactory()
+        t = Technique.objects.create(name="Default Min Belt Test")
         assert t.min_belt == "white"
 
     def test_categories_many_to_many(self, db):
@@ -60,7 +60,7 @@ class TestTechnique:
         assert str(t) == "Omoplata"
 
     def test_difficulty_default_one(self, db):
-        t = TechniqueFactory()
+        t = Technique.objects.create(name="Default Difficulty Test")
         assert t.difficulty == 1
 
 

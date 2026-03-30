@@ -35,7 +35,10 @@ class TestTrainingClassList:
         response = api_client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_returns_classes_for_academy(self, auth_client, academy, training_class):
+    def test_returns_classes_for_academy(self, auth_client, academy, training_class, athlete):
+        from factories import AcademyMembershipFactory
+
+        AcademyMembershipFactory(user=athlete.user, academy=academy, role="STUDENT", is_active=True)
         url = f"/api/attendance/classes/?academy={academy.pk}"
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -124,6 +127,10 @@ class TestQRCheckIn:
     def test_mat_hours_updated_after_checkin(
         self, db, auth_client, academy, training_class, athlete
     ):
+        from athletes.models import AthleteProfile
+
+        AthleteProfile.objects.filter(pk=athlete.pk).update(mat_hours=0.0)
+        athlete.refresh_from_db()
         TrainingClass.objects.filter(pk=training_class.pk).update(duration_minutes=90)
         training_class.refresh_from_db()
         qr = QRCodeService.generate(training_class)
@@ -143,9 +150,11 @@ class TestManualCheckIn:
         professor_client,
         academy,
         training_class,
-        athlete,
         professor_membership,
     ):
+        from factories import AthleteProfileFactory
+
+        athlete = AthleteProfileFactory(academy=academy)
         url = f"/api/attendance/classes/manual_checkin/?academy={academy.pk}"
         response = professor_client.post(
             url,
@@ -190,9 +199,9 @@ class TestManualCheckIn:
 
 
 class TestDropInVisitorAPI:
-    def test_create_drop_in_visitor(self, auth_client, academy):
-        url = "/api/attendance/drop-ins/"
-        response = auth_client.post(
+    def test_create_drop_in_visitor(self, professor_client, academy, professor_membership):
+        url = f"/api/attendance/drop-ins/?academy={academy.pk}"
+        response = professor_client.post(
             url,
             {
                 "academy": academy.pk,
@@ -206,7 +215,10 @@ class TestDropInVisitorAPI:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["first_name"] == "Guest"
 
-    def test_list_drop_ins_by_academy(self, auth_client, academy):
+    def test_list_drop_ins_by_academy(self, auth_client, academy, athlete):
+        from factories import AcademyMembershipFactory
+
+        AcademyMembershipFactory(user=athlete.user, academy=academy, role="STUDENT", is_active=True)
         url = f"/api/attendance/drop-ins/?academy={academy.pk}"
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK
