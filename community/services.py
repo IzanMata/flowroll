@@ -132,23 +132,28 @@ class StatsAggregationService:
     def get_summary(athlete: AthleteProfile) -> dict:
         """Return a stats dictionary for the athlete profile page.
 
-        P4 fix: collapse total_check_ins and achievements_count into a single
-        aggregate() call to avoid 2 extra sequential COUNT queries.
+        Uses a single annotated query to fetch total_check_ins and
+        achievements_count in one round-trip instead of two separate COUNTs.
         """
         from django.db.models import Count
 
-        agg = athlete.check_ins.aggregate(total=Count("id"))
-        total_check_ins = agg["total"]
-
-        achievements_count = athlete.achievements.count()
+        result = (
+            AthleteProfile.objects.filter(pk=athlete.pk)
+            .annotate(
+                total_check_ins=Count("check_ins", distinct=True),
+                achievements_count=Count("achievements", distinct=True),
+            )
+            .values("total_check_ins", "achievements_count", "mat_hours")
+            .get()
+        )
 
         return {
-            "total_check_ins": total_check_ins,
-            "mat_hours": athlete.mat_hours,
+            "total_check_ins": result["total_check_ins"],
+            "mat_hours": result["mat_hours"],
             "current_streak_days": StatsAggregationService.compute_current_streak(
                 athlete
             ),
-            "achievements_count": achievements_count,
+            "achievements_count": result["achievements_count"],
         }
 
 

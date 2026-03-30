@@ -32,6 +32,13 @@ class Match(models.Model):
             ),
         ]
 
+    def __str__(self):
+        return (
+            f"Match #{self.pk}: "
+            f"{self.athlete_a} vs {self.athlete_b} "
+            f"({'finished' if self.is_finished else 'in progress'})"
+        )
+
 
 class MatchEvent(models.Model):
 
@@ -47,3 +54,6 @@ class MatchEvent(models.Model):
     points_awarded = models.IntegerField(default=0)
     action_description = models.CharField(max_length=100)
     event_type = models.CharField(max_length=15, choices=TypeChoices.choices)
+
+    def __str__(self):
+        return f"{self.event_type} by {self.athlete} at {self.timestamp}s (match #{self.match_id})"
