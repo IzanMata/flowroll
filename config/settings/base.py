@@ -105,6 +105,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "MAX_PAGE_SIZE": 100,  # SEC-6: prevent ?page_size=999999 DoS
     # L-4: Global throttling — tightened per-view for auth endpoints
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",

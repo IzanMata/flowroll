@@ -58,6 +58,16 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
             return [IsAcademyMember()]
         return [IsAuthenticated()]
 
+    def perform_create(self, serializer):
+        academy_id = self.get_academy_id()
+        if academy_id:
+            from academies.models import Academy
+            from django.shortcuts import get_object_or_404
+            academy = get_object_or_404(Academy, pk=academy_id)
+            serializer.save(academy=academy)
+        else:
+            serializer.save()
+
     def get_object(self):
         obj = super().get_object()
         if self.action in ("update", "partial_update", "destroy"):
