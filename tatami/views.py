@@ -40,9 +40,8 @@ class TimerPresetViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelVie
         if getattr(self, "swagger_fake_view", False):
             return super().get_queryset()
 
-        # M-4 fix: Academy-scoped timer presets
         academy_id = self.get_academy_id()
-        return selectors.get_presets_for_academy(academy_id or 0)
+        return selectors.get_presets_for_academy(academy_id)
 
     def get_permissions(self):
         if self.request.method in ("GET", "HEAD", "OPTIONS"):
@@ -72,9 +71,8 @@ class TimerSessionViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelVi
         if getattr(self, "swagger_fake_view", False):
             return super().get_queryset()
 
-        # M-4 fix: Academy-scoped timer sessions
         academy_id = self.get_academy_id()
-        return selectors.get_active_sessions(academy_id or 0)
+        return selectors.get_active_sessions(academy_id)
 
     @action(detail=True, methods=["post"])
     def pause(self, request, pk=None):
@@ -113,9 +111,8 @@ class MatchupViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet
         if getattr(self, "swagger_fake_view", False):
             return super().get_queryset()
 
-        # M-3/M-4 fix: Academy-scoped matchups
         academy_id = self.get_academy_id()
-        return selectors.get_matchups_for_academy(academy_id or 0)
+        return selectors.get_matchups_for_academy(academy_id)
 
     @extend_schema(
         request=PairAthletesSerializer, responses=MatchupSerializer(many=True)
@@ -126,9 +123,11 @@ class MatchupViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
 
+        # Derive academy from the authenticated query param — do NOT accept it
+        # from the request body to prevent IDOR (supplying a foreign academy PK).
         from academies.models import Academy
 
-        academy = get_object_or_404(Academy, pk=d["academy_id"])
+        academy = get_object_or_404(Academy, pk=self.get_academy_id() or 0)
 
         # M-3 fix: filter athletes by BOTH pk list AND academy, so a professor
         # cannot inject athletes from a foreign academy into a matchup.

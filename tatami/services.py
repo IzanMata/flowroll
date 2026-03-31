@@ -184,7 +184,9 @@ class TimerService:
             raise ValueError("Can only pause a running timer.")
         session.paused_at = timezone.now()
         session.status = session.Status.PAUSED
-        delta = (session.paused_at - session.started_at).seconds
+        # .total_seconds() returns the full duration; .seconds only gives the
+        # seconds component (0–59), giving wrong results for durations > 1 min.
+        delta = int((session.paused_at - session.started_at).total_seconds())
         session.elapsed_seconds += delta
         session.save(update_fields=["paused_at", "status", "elapsed_seconds"])
 

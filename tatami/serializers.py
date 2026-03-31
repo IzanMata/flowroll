@@ -93,9 +93,12 @@ class MatchupSerializer(serializers.ModelSerializer):
 
 
 class PairAthletesSerializer(serializers.Serializer):
-    """Input for the pair_athletes action."""
+    """Input for the pair_athletes action.
+
+    academy is intentionally absent — it is derived from the ?academy= query
+    param so the caller cannot supply a foreign academy ID in the request body.
+    """
 
     athlete_ids = serializers.ListField(child=serializers.IntegerField(), min_length=2)
     match_format = serializers.ChoiceField(choices=Matchup.MatchFormat.choices)
     weight_class_id = serializers.IntegerField(required=False, allow_null=True)
-    academy_id = serializers.IntegerField()

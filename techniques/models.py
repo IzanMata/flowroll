@@ -5,9 +5,19 @@ from core.mixins import TimestampMixin
 from core.models import Belt
 
 
-# TODO:
-# slug podría ser obligatorio para URLs amigables.
-class TechniqueCategory(models.Model):
+class AutoSlugMixin(models.Model):
+    """Abstract mixin: auto-populates `slug` from `name` on first save."""
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class TechniqueCategory(AutoSlugMixin, models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     slug = models.SlugField(max_length=120, unique=True, blank=True, null=True)
@@ -15,16 +25,11 @@ class TechniqueCategory(models.Model):
     class Meta:
         ordering = ["name"]
 
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return self.name
 
 
-class Technique(TimestampMixin, models.Model):
+class Technique(AutoSlugMixin, TimestampMixin, models.Model):
 
     class DifficultyLevel(models.IntegerChoices):
         ONE = 1, "1 Star"
@@ -56,11 +61,6 @@ class Technique(TimestampMixin, models.Model):
 
     class Meta:
         ordering = ["name"]
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

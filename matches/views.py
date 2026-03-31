@@ -109,15 +109,24 @@ class MatchViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # H-4 fix: winner must be one of the two participants
-        valid_participant_ids = {str(match.athlete_a_id), str(match.athlete_b_id)}
-        if str(winner_id) not in valid_participant_ids:
+        # winner_id must be one of the two participants; compare as integers to
+        # avoid silent mismatches from string/int type coercion.
+        try:
+            winner_id = int(winner_id)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "winner_id must be an integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if winner_id not in (match.athlete_a_id, match.athlete_b_id):
             return Response(
                 {"error": "winner_id must be one of the match participants."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        match.is_finished = True
-        match.winner_id = winner_id
-        match.save()
+        # Use update() with update_fields to avoid overwriting concurrent score
+        # changes made by add_event between get_object() and this save().
+        Match.objects.filter(pk=match.pk).update(is_finished=True, winner_id=winner_id)
+        match.refresh_from_db()
         return Response(MatchSerializer(match).data, status=status.HTTP_200_OK)

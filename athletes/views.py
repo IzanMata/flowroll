@@ -1,8 +1,11 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
+from academies.models import Academy
 from core.mixins import AcademyFilterMixin, SwaggerSafeMixin
+from core.models import AcademyMembership
 from core.permissions import IsAcademyMember
 
 from .models import AthleteProfile
@@ -25,20 +28,25 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
         if getattr(self, "swagger_fake_view", False):
             return super().get_queryset()
 
-        # H-2 fix: Enforce tenant isolation with membership validation
-        # CONSISTENCY FIX: Use 'academy' parameter like other views (was 'academy_id')
         if self.request.user.is_superuser:
             return self.filter_by_academy(
                 AthleteProfile.objects.select_related("user", "academy")
             )
 
-        # For regular users, validate membership and return scoped queryset
-        validated_queryset = self.get_academy_scoped_queryset(AthleteProfile.objects.all())
-        if validated_queryset is not AthleteProfile.objects.none():
-            return self.filter_by_academy(
-                AthleteProfile.objects.select_related("user", "academy")
-            )
-        return validated_queryset
+        academy_id = self.get_academy_id()
+        if not academy_id:
+            return AthleteProfile.objects.none()
+
+        # Explicit membership check — avoids the broken `is not queryset.none()`
+        # identity comparison (two .none() calls are never the same object).
+        if not AcademyMembership.objects.filter(
+            user=self.request.user, academy_id=academy_id, is_active=True
+        ).exists():
+            return AthleteProfile.objects.none()
+
+        return AthleteProfile.objects.filter(
+            academy_id=academy_id
+        ).select_related("user", "academy")
 
     def get_permissions(self):
         """
@@ -61,8 +69,6 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
     def perform_create(self, serializer):
         academy_id = self.get_academy_id()
         if academy_id:
-            from academies.models import Academy
-            from django.shortcuts import get_object_or_404
             academy = get_object_or_404(Academy, pk=academy_id)
             serializer.save(academy=academy)
         else:
@@ -79,7 +85,6 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
             is_own_profile = obj.user == user
 
             # Check if user is professor/owner of the academy
-            from core.models import AcademyMembership
             is_professor_or_owner = AcademyMembership.objects.filter(
                 user=user,
                 academy=obj.academy,
