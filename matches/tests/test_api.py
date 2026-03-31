@@ -80,9 +80,30 @@ class TestMatchAuthGuard:
 
 
 class TestMatchPermissions:
-    def test_student_cannot_list_matches(self, api_client, student_user, match_academy):
+    def test_student_member_can_list_matches(
+        self, api_client, student_user, match_academy
+    ):
+        # Students (academy members) may read matches — only writes require professor.
         api_client.force_authenticate(user=student_user)
         response = api_client.get(f"{MATCHES_URL}?academy={match_academy.pk}")
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_non_member_cannot_list_matches(
+        self, api_client, match_academy
+    ):
+        outsider = UserFactory(username="outsider_no_membership")
+        api_client.force_authenticate(user=outsider)
+        response = api_client.get(f"{MATCHES_URL}?academy={match_academy.pk}")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_student_cannot_create_match(
+        self, api_client, student_user, match_academy
+    ):
+        api_client.force_authenticate(user=student_user)
+        response = api_client.post(
+            f"{MATCHES_URL}?academy={match_academy.pk}",
+            data={"academy": match_academy.pk},
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_professor_can_list_matches(
