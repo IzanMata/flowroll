@@ -2,6 +2,7 @@ import secrets
 import uuid
 
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -29,7 +30,7 @@ class TrainingClass(TenantMixin, TimestampMixin):
         related_name="classes_taught",
     )
     scheduled_at = models.DateTimeField()
-    duration_minutes = models.PositiveIntegerField(default=60)
+    duration_minutes = models.PositiveIntegerField(default=60, validators=[MinValueValidator(1)])
     max_capacity = models.PositiveIntegerField(null=True, blank=True)
     notes = models.TextField(blank=True)
 

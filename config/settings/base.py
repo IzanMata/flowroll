@@ -103,7 +103,7 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ),
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "core.pagination.FlowRollPagination",
     "PAGE_SIZE": 20,
     "MAX_PAGE_SIZE": 100,  # SEC-6: prevent ?page_size=999999 DoS
     # L-4: Global throttling — tightened per-view for auth endpoints

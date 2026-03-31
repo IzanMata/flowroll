@@ -53,6 +53,7 @@ class TimerPresetViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelVie
         preset = self.get_object()
         session = TimerSession.objects.create(preset=preset)
         TimerService.start(session)
+        session.refresh_from_db()
         return Response(
             TimerSessionSerializer(session).data, status=status.HTTP_201_CREATED
         )
@@ -72,7 +73,7 @@ class TimerSessionViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelVi
             return super().get_queryset()
 
         academy_id = self.get_academy_id()
-        return selectors.get_active_sessions(academy_id)
+        return selectors.get_sessions_for_academy(academy_id)
 
     @action(detail=True, methods=["post"])
     def pause(self, request, pk=None):
@@ -81,12 +82,14 @@ class TimerSessionViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelVi
             TimerService.pause(session)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        session.refresh_from_db()
         return Response(TimerSessionSerializer(session).data)
 
     @action(detail=True, methods=["post"])
     def finish(self, request, pk=None):
         session = self.get_object()
         TimerService.finish(session)
+        session.refresh_from_db()
         return Response(TimerSessionSerializer(session).data)
 
 
