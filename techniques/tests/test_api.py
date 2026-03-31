@@ -87,3 +87,109 @@ class TestBeltReadOnly:
     def test_regular_user_cannot_create_belt_via_api(self, auth_client):
         response = auth_client.post(BELTS_URL, {"color": "coral", "order": 7})
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+# ─── Technique update / delete by role ───────────────────────────────────────
+
+
+class TestTechniqueUpdateByRole:
+    def _create_technique(self, api_client):
+        superuser = UserFactory(is_superuser=True, is_staff=True)
+        api_client.force_authenticate(user=superuser)
+        resp = api_client.post(
+            TECHNIQUES_URL,
+            {"name": "Triangle Choke", "difficulty": 3, "min_belt": "white"},
+        )
+        assert resp.status_code == 201, resp.data
+        return resp.data["id"], superuser
+
+    def test_superuser_can_update_technique(self, db, api_client):
+        pk, superuser = self._create_technique(api_client)
+        api_client.force_authenticate(user=superuser)
+        response = api_client.patch(
+            f"{TECHNIQUES_URL}{pk}/",
+            {"difficulty": 5},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["difficulty"] == 5
+
+    def test_regular_user_cannot_update_technique(self, db, api_client):
+        pk, _ = self._create_technique(api_client)
+        regular = UserFactory()
+        api_client.force_authenticate(user=regular)
+        response = api_client.patch(
+            f"{TECHNIQUES_URL}{pk}/",
+            {"difficulty": 1},
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_unauthenticated_cannot_update_technique(self, db, api_client):
+        pk, _ = self._create_technique(api_client)
+        api_client.logout()
+        response = api_client.patch(
+            f"{TECHNIQUES_URL}{pk}/",
+            {"difficulty": 1},
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestTechniqueDeleteByRole:
+    def _create_technique(self, api_client):
+        superuser = UserFactory(is_superuser=True, is_staff=True)
+        api_client.force_authenticate(user=superuser)
+        resp = api_client.post(
+            TECHNIQUES_URL,
+            {"name": "Rear Naked Choke", "difficulty": 2, "min_belt": "white"},
+        )
+        assert resp.status_code == 201, resp.data
+        return resp.data["id"], superuser
+
+    def test_superuser_can_delete_technique(self, db, api_client):
+        pk, superuser = self._create_technique(api_client)
+        api_client.force_authenticate(user=superuser)
+        response = api_client.delete(f"{TECHNIQUES_URL}{pk}/")
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    def test_regular_user_cannot_delete_technique(self, db, api_client):
+        pk, _ = self._create_technique(api_client)
+        regular = UserFactory()
+        api_client.force_authenticate(user=regular)
+        response = api_client.delete(f"{TECHNIQUES_URL}{pk}/")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_unauthenticated_cannot_delete_technique(self, db, api_client):
+        pk, _ = self._create_technique(api_client)
+        api_client.logout()
+        response = api_client.delete(f"{TECHNIQUES_URL}{pk}/")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ─── Category update / delete by role ────────────────────────────────────────
+
+
+class TestCategoryUpdateByRole:
+    def _create_category(self, api_client):
+        superuser = UserFactory(is_superuser=True, is_staff=True)
+        api_client.force_authenticate(user=superuser)
+        resp = api_client.post(CATEGORIES_URL, {"name": "Chokes"})
+        assert resp.status_code == 201, resp.data
+        return resp.data["id"], superuser
+
+    def test_superuser_can_update_category(self, db, api_client):
+        pk, superuser = self._create_category(api_client)
+        api_client.force_authenticate(user=superuser)
+        response = api_client.patch(f"{CATEGORIES_URL}{pk}/", {"name": "Submissions"})
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_regular_user_cannot_update_category(self, db, api_client):
+        pk, _ = self._create_category(api_client)
+        regular = UserFactory()
+        api_client.force_authenticate(user=regular)
+        response = api_client.patch(f"{CATEGORIES_URL}{pk}/", {"name": "Sweeps"})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_superuser_can_delete_category(self, db, api_client):
+        pk, superuser = self._create_category(api_client)
+        api_client.force_authenticate(user=superuser)
+        response = api_client.delete(f"{CATEGORIES_URL}{pk}/")
+        assert response.status_code == status.HTTP_204_NO_CONTENT

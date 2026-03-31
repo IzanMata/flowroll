@@ -174,3 +174,108 @@ class TestFinishMatch:
             {},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_student_cannot_finish_match(
+        self, api_client, student_user, match_academy, match_obj
+    ):
+        api_client.force_authenticate(user=student_user)
+        response = api_client.post(
+            f"{finish_url(match_obj.pk)}?academy={match_academy.pk}",
+            {"winner_id": match_obj.athlete_a_id},
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        match_obj.refresh_from_db()
+        assert match_obj.is_finished is False
+
+    def test_unauthenticated_cannot_finish_match(self, api_client, match_academy, match_obj):
+        response = api_client.post(
+            f"{finish_url(match_obj.pk)}?academy={match_academy.pk}",
+            {"winner_id": match_obj.athlete_a_id},
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ─── add_event action ─────────────────────────────────────────────────────────
+
+
+class TestAddEvent:
+    def test_professor_can_add_event(
+        self, api_client, professor_user, match_academy, match_obj
+    ):
+        api_client.force_authenticate(user=professor_user)
+        response = api_client.post(
+            f"{add_event_url(match_obj.pk)}?academy={match_academy.pk}",
+            {
+                "athlete": match_obj.athlete_a_id,
+                "event_type": "POINTS",
+                "timestamp": 60,
+                "points_awarded": 2,
+                "action_description": "takedown",
+            },
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_student_cannot_add_event(
+        self, api_client, student_user, match_academy, match_obj
+    ):
+        api_client.force_authenticate(user=student_user)
+        response = api_client.post(
+            f"{add_event_url(match_obj.pk)}?academy={match_academy.pk}",
+            {
+                "athlete": match_obj.athlete_a_id,
+                "event_type": "POINTS",
+                "timestamp": 60,
+                "points_awarded": 2,
+                "action_description": "takedown",
+            },
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_unauthenticated_cannot_add_event(self, api_client, match_academy, match_obj):
+        response = api_client.post(
+            f"{add_event_url(match_obj.pk)}?academy={match_academy.pk}",
+            {
+                "athlete": match_obj.athlete_a_id,
+                "event_type": "POINTS",
+                "timestamp": 60,
+                "points_awarded": 2,
+                "action_description": "takedown",
+            },
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_non_participant_athlete_is_rejected(
+        self, api_client, professor_user, match_academy, match_obj
+    ):
+        from factories import UserFactory
+        outsider = UserFactory(username="non_participant")
+        api_client.force_authenticate(user=professor_user)
+        response = api_client.post(
+            f"{add_event_url(match_obj.pk)}?academy={match_academy.pk}",
+            {
+                "athlete": outsider.pk,
+                "event_type": "POINTS",
+                "timestamp": 30,
+                "points_awarded": 2,
+                "action_description": "sweep",
+            },
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_score_incremented_for_athlete_a_points_event(
+        self, api_client, professor_user, match_academy, match_obj
+    ):
+        api_client.force_authenticate(user=professor_user)
+        api_client.post(
+            f"{add_event_url(match_obj.pk)}?academy={match_academy.pk}",
+            {
+                "athlete": match_obj.athlete_a_id,
+                "event_type": "POINTS",
+                "timestamp": 90,
+                "points_awarded": 3,
+                "action_description": "guard pass",
+            },
+        )
+        match_obj.refresh_from_db()
+        assert match_obj.score_a == 3
+        assert match_obj.score_b == 0

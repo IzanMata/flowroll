@@ -119,8 +119,8 @@ class TestTrainingClassMembershipGuard:
         outsider = UserFactory()
         api_client.force_authenticate(user=outsider)
         response = api_client.get(f"/api/attendance/classes/?academy={academy.pk}")
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["count"] == 0  # silently empty, not leaking data
+        # IsAcademyMember blocks non-members before get_queryset — 403 not leaking data
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_member_can_see_classes(self, db, api_client, academy):
         user = UserFactory()

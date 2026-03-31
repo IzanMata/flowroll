@@ -50,11 +50,15 @@ class TestTrainingClassList:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["count"] == 0
 
-    def test_does_not_return_other_academy_classes(self, auth_client, academy):
+    def test_does_not_return_other_academy_classes(self, db, api_client, academy):
+        from factories import AcademyMembershipFactory, UserFactory
+        member = UserFactory()
+        AcademyMembershipFactory(user=member, academy=academy, role="STUDENT", is_active=True)
         other_academy = AcademyFactory()
         TrainingClassFactory(academy=other_academy)
+        api_client.force_authenticate(user=member)
         url = f"/api/attendance/classes/?academy={academy.pk}"
-        response = auth_client.get(url)
+        response = api_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         # Only our academy's classes (zero in this case)
         for item in response.data["results"]:
@@ -222,3 +226,133 @@ class TestDropInVisitorAPI:
         url = f"/api/attendance/drop-ins/?academy={academy.pk}"
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK
+
+
+# ─── TrainingClass create / update / delete by role ──────────────────────────
+
+
+class TestTrainingClassRolePermissions:
+    """
+    Verify that only professors/owners may write training classes;
+    students and unauthenticated users are rejected.
+    """
+
+    _CLASS_URL = "/api/attendance/classes/"
+
+    def _create_payload(self, academy):
+        from django.utils import timezone
+        return {
+            "academy": academy.pk,
+            "title": "Evening Gi",
+            "class_type": TrainingClass.ClassType.GI,
+            "scheduled_at": timezone.now().isoformat(),
+            "duration_minutes": 90,
+        }
+
+    # ── Create ────────────────────────────────────────────────────────────────
+
+    def test_student_cannot_create_training_class(self, db, api_client, academy):
+        from factories import AcademyMembershipFactory, UserFactory
+        student = UserFactory()
+        AcademyMembershipFactory(user=student, academy=academy, role="STUDENT", is_active=True)
+        api_client.force_authenticate(user=student)
+        url = f"{self._CLASS_URL}?academy={academy.pk}"
+        response = api_client.post(url, self._create_payload(academy), format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_non_member_cannot_create_training_class(self, db, api_client, academy):
+        from factories import UserFactory
+        outsider = UserFactory()
+        api_client.force_authenticate(user=outsider)
+        url = f"{self._CLASS_URL}?academy={academy.pk}"
+        response = api_client.post(url, self._create_payload(academy), format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_unauthenticated_cannot_create_training_class(self, db, api_client, academy):
+        url = f"{self._CLASS_URL}?academy={academy.pk}"
+        response = api_client.post(url, self._create_payload(academy), format="json")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_professor_can_create_training_class(
+        self, db, api_client, academy, professor_athlete
+    ):
+        from factories import AcademyMembershipFactory
+        AcademyMembershipFactory(
+            user=professor_athlete.user, academy=academy, role="PROFESSOR", is_active=True
+        )
+        api_client.force_authenticate(user=professor_athlete.user)
+        url = f"{self._CLASS_URL}?academy={academy.pk}"
+        payload = self._create_payload(academy)
+        payload["professor"] = professor_athlete.user.pk
+        response = api_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_owner_can_create_training_class(self, db, api_client, academy, professor_athlete):
+        from factories import AcademyMembershipFactory, UserFactory
+        owner = UserFactory()
+        AcademyMembershipFactory(user=owner, academy=academy, role="OWNER", is_active=True)
+        # professors can be set to any user that exists
+        AcademyMembershipFactory(
+            user=professor_athlete.user, academy=academy, role="PROFESSOR", is_active=True
+        )
+        api_client.force_authenticate(user=owner)
+        url = f"{self._CLASS_URL}?academy={academy.pk}"
+        payload = self._create_payload(academy)
+        payload["professor"] = professor_athlete.user.pk
+        response = api_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    # ── Update ────────────────────────────────────────────────────────────────
+
+    def test_student_cannot_update_training_class(
+        self, db, api_client, academy, training_class
+    ):
+        from factories import AcademyMembershipFactory, UserFactory
+        student = UserFactory()
+        AcademyMembershipFactory(user=student, academy=academy, role="STUDENT", is_active=True)
+        api_client.force_authenticate(user=student)
+        url = f"{self._CLASS_URL}{training_class.pk}/?academy={academy.pk}"
+        response = api_client.patch(url, {"duration_minutes": 45}, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_professor_can_update_training_class(
+        self, db, api_client, academy, training_class, professor_athlete, professor_membership
+    ):
+        api_client.force_authenticate(user=professor_athlete.user)
+        url = f"{self._CLASS_URL}{training_class.pk}/?academy={academy.pk}"
+        response = api_client.patch(url, {"duration_minutes": 45}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+
+    # ── Delete ────────────────────────────────────────────────────────────────
+
+    def test_student_cannot_delete_training_class(
+        self, db, api_client, academy, training_class
+    ):
+        from factories import AcademyMembershipFactory, UserFactory
+        student = UserFactory()
+        AcademyMembershipFactory(user=student, academy=academy, role="STUDENT", is_active=True)
+        api_client.force_authenticate(user=student)
+        url = f"{self._CLASS_URL}{training_class.pk}/?academy={academy.pk}"
+        response = api_client.delete(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert TrainingClass.objects.filter(pk=training_class.pk).exists()
+
+    def test_professor_can_delete_training_class(
+        self, db, api_client, academy, training_class, professor_athlete, professor_membership
+    ):
+        api_client.force_authenticate(user=professor_athlete.user)
+        url = f"{self._CLASS_URL}{training_class.pk}/?academy={academy.pk}"
+        response = api_client.delete(url)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not TrainingClass.objects.filter(pk=training_class.pk).exists()
+
+    # ── Non-member gets empty result on reads ─────────────────────────────────
+
+    def test_non_member_gets_403(self, db, api_client, academy, training_class):
+        from factories import UserFactory
+        outsider = UserFactory()
+        api_client.force_authenticate(user=outsider)
+        url = f"{self._CLASS_URL}?academy={academy.pk}"
+        response = api_client.get(url)
+        # non-members are blocked by IsAcademyMember before reaching get_queryset
+        assert response.status_code == status.HTTP_403_FORBIDDEN
