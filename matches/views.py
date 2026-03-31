@@ -3,11 +3,10 @@ from django.db.models import F
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from rest_framework.permissions import IsAuthenticated
-
-from core.permissions import IsAcademyProfessor
+from core.permissions import IsAcademyMember, IsAcademyProfessor
 
 from .models import Match, MatchEvent
 from .serializers import MatchEventSerializer, MatchSerializer
@@ -15,23 +14,21 @@ from .serializers import MatchEventSerializer, MatchSerializer
 
 class MatchViewSet(viewsets.ModelViewSet):
     """
-    H-4 fixes applied:
-      - IsAcademyProfessor permission on all endpoints
-      - Queryset scoped to the academy in the query param
-      - winner_id validated to be a match participant
-      - Score increments use F() to avoid lost-update race conditions
-      - add_event uses raise_exception=True (I-1 fix)
+    Read (list/retrieve) requires academy membership.
+    Write (create/update/delete/add_event/finish_match) requires professor role.
+    Without ?academy=, returns an empty queryset — no permission error.
     """
 
     serializer_class = MatchSerializer
-    permission_classes = [IsAcademyProfessor]
 
     def get_permissions(self):
-        # When no academy param is provided, require only authentication;
-        # get_queryset() will return an empty queryset in that case.
-        if not self.request.query_params.get("academy"):
+        academy_id = self.request.query_params.get("academy")
+        if not academy_id:
+            # No academy scoping — empty queryset, only auth required.
             return [IsAuthenticated()]
-        return super().get_permissions()
+        if self.request.method in ("GET", "HEAD", "OPTIONS"):
+            return [IsAcademyMember()]
+        return [IsAcademyProfessor()]
 
     def get_queryset(self):
         """Return matches scoped to ?academy. Returns empty queryset if param is absent."""

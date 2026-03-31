@@ -8,6 +8,7 @@ from athletes.models import AthleteProfile
 from core.exceptions import standardize_service_error
 from core.mixins import AcademyFilterMixin, SwaggerSafeMixin
 from core.permissions import IsAcademyMember, IsAcademyProfessor
+from rest_framework.permissions import IsAuthenticated
 
 from . import selectors
 from .filters import TrainingClassFilter
@@ -31,6 +32,14 @@ class TrainingClassViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelV
     filterset_class = TrainingClassFilter
     search_fields = ["title", "class_type"]
     ordering_fields = ["scheduled_at", "duration_minutes"]
+
+    def get_permissions(self):
+        academy_id = self.request.query_params.get("academy")
+        if not academy_id:
+            return [IsAuthenticated()]
+        if self.request.method in ("GET", "HEAD", "OPTIONS"):
+            return [IsAcademyMember()]
+        return [IsAcademyProfessor()]
 
     def get_queryset(self):
         # SwaggerSafeMixin handles swagger_fake_view check

@@ -4,10 +4,10 @@ from .models import CheckIn, TrainingClass
 
 
 class TrainingClassFilter(django_filters.FilterSet):
-    scheduled_after = django_filters.DateTimeFilter(
+    scheduled_after = django_filters.IsoDateTimeFilter(
         field_name="scheduled_at", lookup_expr="gte"
     )
-    scheduled_before = django_filters.DateTimeFilter(
+    scheduled_before = django_filters.IsoDateTimeFilter(
         field_name="scheduled_at", lookup_expr="lte"
     )
 

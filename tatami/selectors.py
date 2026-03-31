@@ -11,12 +11,11 @@ def get_presets_for_academy(academy_id: Optional[int]) -> QuerySet:
     return TimerPreset.objects.filter(academy_id=academy_id)
 
 
-def get_active_sessions(academy_id: Optional[int]) -> QuerySet:
+def get_sessions_for_academy(academy_id: Optional[int]) -> QuerySet:
     if not academy_id:
         return TimerSession.objects.none()
     return TimerSession.objects.filter(
         preset__academy_id=academy_id,
-        status__in=[TimerSession.Status.RUNNING, TimerSession.Status.PAUSED],
     ).select_related("preset")
 
 

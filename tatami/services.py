@@ -15,7 +15,7 @@ from django.db import transaction
 from athletes.models import AthleteProfile
 from core.models import Belt
 
-from .models import Matchup, WeightClass
+from .models import Matchup, TimerSession, WeightClass
 
 # Belt ordering map used for numeric comparison
 BELT_ORDER = {
@@ -162,6 +162,9 @@ class TimerService:
         """
         from django.utils import timezone
 
+        # Re-fetch with a row-level lock so two concurrent start() calls cannot
+        # both pass the status check before either writes the new RUNNING state.
+        session = TimerSession.objects.select_for_update().get(pk=session.pk)
         if session.status not in (session.Status.IDLE, session.Status.PAUSED):
             raise ValueError(f"Cannot start a timer in '{session.status}' state.")
         session.started_at = timezone.now()
@@ -180,6 +183,10 @@ class TimerService:
         """
         from django.utils import timezone
 
+        # Re-fetch with a row-level lock: without this two concurrent pause()
+        # calls both read status=RUNNING from the stale Python object, both
+        # pass the guard, and both write PAUSED — doubling elapsed_seconds.
+        session = TimerSession.objects.select_for_update().get(pk=session.pk)
         if session.status != session.Status.RUNNING:
             raise ValueError("Can only pause a running timer.")
         session.paused_at = timezone.now()
@@ -194,5 +201,9 @@ class TimerService:
     @transaction.atomic
     def finish(session) -> None:
         """Mark a timer session as FINISHED regardless of its current state."""
+        # Row-level lock prevents two concurrent finish() calls from both
+        # completing (idempotent for FINISHED→FINISHED but prevents races
+        # with concurrent pause/start transitions).
+        session = TimerSession.objects.select_for_update().get(pk=session.pk)
         session.status = session.Status.FINISHED
         session.save(update_fields=["status"])

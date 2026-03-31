@@ -219,3 +219,69 @@ class TestAthleteSerializerFields:
         response = api_client.get(athlete_scoped_url(athlete.pk, academy.pk))
         assert response.status_code == status.HTTP_200_OK
         assert response.data["academy_detail"]["id"] == academy.pk
+
+
+# ─── Read-only field enforcement ──────────────────────────────────────────────
+
+
+class TestAthleteReadOnlyFields:
+    """PATCH cannot escalate role or modify system-managed fields."""
+
+    def test_cannot_escalate_role_via_patch(self, db, api_client, academy):
+        """A student PATCHing their own profile cannot change their role to PROFESSOR."""
+        user = UserFactory()
+        AcademyMembershipFactory(user=user, academy=academy, role="STUDENT", is_active=True)
+        profile = AthleteProfileFactory(user=user, academy=academy, role="STUDENT")
+        api_client.force_authenticate(user=user)
+        response = api_client.patch(
+            athlete_scoped_url(profile.pk, academy.pk),
+            {"role": "PROFESSOR"},
+        )
+        # Request may succeed (200) but role must not change
+        assert response.status_code in (status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST)
+        profile.refresh_from_db()
+        assert profile.role == "STUDENT"
+
+    def test_cannot_inflate_mat_hours_via_patch(self, db, api_client, academy):
+        """mat_hours is read-only — PATCH with mat_hours must not change the value."""
+        user = UserFactory()
+        AcademyMembershipFactory(user=user, academy=academy, role="STUDENT", is_active=True)
+        profile = AthleteProfileFactory(user=user, academy=academy, mat_hours=10.0)
+        original_hours = profile.mat_hours
+        api_client.force_authenticate(user=user)
+        response = api_client.patch(
+            athlete_scoped_url(profile.pk, academy.pk),
+            {"mat_hours": 9999.0},
+        )
+        assert response.status_code in (status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST)
+        profile.refresh_from_db()
+        assert profile.mat_hours == original_hours
+
+    def test_cannot_change_academy_via_patch(self, db, api_client, academy):
+        """academy is read-only — PATCH with a different academy must not move the profile."""
+        other_academy = AcademyMembershipFactory().academy
+        user = UserFactory()
+        AcademyMembershipFactory(user=user, academy=academy, role="STUDENT", is_active=True)
+        profile = AthleteProfileFactory(user=user, academy=academy)
+        api_client.force_authenticate(user=user)
+        response = api_client.patch(
+            athlete_scoped_url(profile.pk, academy.pk),
+            {"academy": other_academy.pk},
+        )
+        assert response.status_code in (status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST)
+        profile.refresh_from_db()
+        assert profile.academy_id == academy.pk
+
+    def test_professor_cannot_escalate_to_owner(self, db, api_client, academy):
+        """A professor cannot PATCH their own profile to become OWNER."""
+        user = UserFactory()
+        AcademyMembershipFactory(user=user, academy=academy, role="PROFESSOR", is_active=True)
+        profile = AthleteProfileFactory(user=user, academy=academy, role="PROFESSOR")
+        api_client.force_authenticate(user=user)
+        response = api_client.patch(
+            athlete_scoped_url(profile.pk, academy.pk),
+            {"role": "OWNER"},
+        )
+        assert response.status_code in (status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST)
+        profile.refresh_from_db()
+        assert profile.role == "PROFESSOR"
