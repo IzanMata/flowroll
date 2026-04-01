@@ -5,6 +5,7 @@ Set DJANGO_ENV=production to activate.
 """
 
 import os  # noqa: F401
+import urllib.parse
 
 from .base import *  # noqa: F401, F403
 from .base import REST_FRAMEWORK, TIME_ZONE  # noqa: F401
@@ -19,20 +20,36 @@ ALLOWED_HOSTS = [
     h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()
 ]
 
-# ─── Database (all vars required in production) ───────────────────────────────
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ["POSTGRES_DB"],
-        "USER": os.environ["POSTGRES_USER"],
-        "PASSWORD": os.environ["POSTGRES_PASSWORD"],
-        "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
-        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
-        # P19 fix: detect stale persistent connections before use
-        "CONN_HEALTH_CHECKS": True,
+# ─── Database ─────────────────────────────────────────────────────────────────
+# Supports DATABASE_URL (Render / 12-factor) or individual POSTGRES_* vars.
+_database_url = os.environ.get("DATABASE_URL")
+if _database_url:
+    _db = urllib.parse.urlparse(_database_url)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _db.path.lstrip("/"),
+            "USER": _db.username,
+            "PASSWORD": _db.password,
+            "HOST": _db.hostname,
+            "PORT": _db.port or 5432,
+            "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+            "CONN_HEALTH_CHECKS": True,
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ["POSTGRES_DB"],
+            "USER": os.environ["POSTGRES_USER"],
+            "PASSWORD": os.environ["POSTGRES_PASSWORD"],
+            "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+            "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+            "CONN_HEALTH_CHECKS": True,
+        }
+    }
 
 # ─── Redis / Cache ────────────────────────────────────────────────────────────
 # L-6 fix: REDIS_URL required; must include credentials (redis://:pass@host/db)
@@ -80,6 +97,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # ─── L-1: HTTPS / security headers ───────────────────────────────────────────
+# Tell Django the request is HTTPS even though Render's proxy forwards it as HTTP internally.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 31_536_000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
