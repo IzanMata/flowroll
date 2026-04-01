@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import (TokenObtainPairView,
                                             TokenRefreshView)
 
 from config.throttles import LoginRateThrottle, TokenRefreshRateThrottle
+from core.views import me
 
 
 # L-4 fix: apply tight per-endpoint throttles to the auth views so brute-force
@@ -31,6 +32,7 @@ urlpatterns = [
         ThrottledTokenRefreshView.as_view(),
         name="token_refresh",
     ),
+    path("api/auth/me/", me, name="auth_me"),
     # Domain apps
     path("api/athletes/", include("athletes.urls")),
     path("api/techniques/", include("techniques.urls")),
