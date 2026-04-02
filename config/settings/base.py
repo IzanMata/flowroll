@@ -31,8 +31,10 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "drf_spectacular",
+    "allauth.socialaccount.providers.google",
     # Local — core
     "core",
+    "accounts",
     # Local — domain apps
     "academies",
     "athletes",
@@ -117,6 +119,8 @@ REST_FRAMEWORK = {
         "user": "2000/hour",
         "login": "10/minute",  # custom class in config/throttles.py
         "token_refresh": "20/minute",  # custom class in config/throttles.py
+        "register": "10/minute",
+        "password_reset": "5/minute",
     },
 }
 
@@ -204,3 +208,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "mediafiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ─── Google OAuth ─────────────────────────────────────────────────────────────
+# Set GOOGLE_CLIENT_ID in your .env file (obtain from Google Cloud Console).
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")

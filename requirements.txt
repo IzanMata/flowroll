@@ -5,6 +5,8 @@ djangorestframework-simplejwt[crypto]==5.3.1  # L-5: [crypto] enables token_blac
 django-filter==24.3
 django-cors-headers==4.9.0
 django-allauth==65.12.1
+google-auth==2.38.0
+requests==2.32.3
 drf-spectacular==0.28.0
 python-dotenv==1.1.1
 

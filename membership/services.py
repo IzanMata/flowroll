@@ -13,6 +13,7 @@ from django.db import transaction
 from django.db.models import F
 
 from athletes.models import AthleteProfile
+from core.models import AcademyMembership
 
 from .models import (DojoTabBalance, DojoTabTransaction, MembershipPlan,
                      PromotionRequirement, Seminar, SeminarRegistration,
@@ -69,12 +70,142 @@ class SubscriptionService:
         return subscription
 
     @staticmethod
+    @transaction.atomic
+    def cancel(subscription: "Subscription", user) -> "Subscription":
+        """
+        Cancel an active subscription.
+
+        Only the athlete who owns the subscription may cancel it.
+        Raises ValueError if the subscription is not active or does not
+        belong to the requesting user.
+        """
+        if subscription.athlete.user_id != user.pk:
+            raise ValueError("You can only cancel your own subscription.")
+        if subscription.status != Subscription.Status.ACTIVE:
+            raise ValueError(
+                f"Cannot cancel a subscription with status '{subscription.status}'."
+            )
+        subscription.status = Subscription.Status.CANCELLED
+        subscription.save(update_fields=["status"])
+        return subscription
+
+    @staticmethod
     def expire_stale_subscriptions() -> int:
         """Mark all past end-date active subscriptions as EXPIRED."""
         return Subscription.objects.filter(
             status=Subscription.Status.ACTIVE,
             end_date__lt=date.today(),
         ).update(status=Subscription.Status.EXPIRED)
+
+
+# ---------------------------------------------------------------------------
+# Leave Academy Service
+# ---------------------------------------------------------------------------
+
+
+class LeaveAcademyService:
+    """
+    Handles a user voluntarily leaving an academy.
+
+    Rules:
+    - OWNER cannot leave — they must transfer ownership first to avoid
+      orphaning the academy.
+    - Deactivates the AcademyMembership.
+    - Cancels any active subscriptions at that academy so the athlete is
+      not billed for a gym they can no longer access.
+    """
+
+    @staticmethod
+    @transaction.atomic
+    def leave(user, academy) -> None:
+        try:
+            membership = AcademyMembership.objects.get(
+                user=user, academy=academy, is_active=True
+            )
+        except AcademyMembership.DoesNotExist:
+            raise ValueError("You are not an active member of this academy.")
+
+        if membership.role == AcademyMembership.Role.OWNER:
+            raise ValueError(
+                "Academy owners cannot leave. Transfer ownership to another member first."
+            )
+
+        membership.is_active = False
+        membership.save(update_fields=["is_active"])
+
+        # Cancel active subscriptions at this academy
+        try:
+            athlete = user.profile
+            Subscription.objects.filter(
+                athlete=athlete,
+                plan__academy=academy,
+                status=Subscription.Status.ACTIVE,
+            ).update(status=Subscription.Status.CANCELLED)
+        except Exception:
+            pass  # User may not have an AthleteProfile yet — that is fine
+
+
+# ---------------------------------------------------------------------------
+# Enrollment Service
+# ---------------------------------------------------------------------------
+
+
+class EnrollmentService:
+    """
+    Handles the full onboarding flow when a user joins an academy by purchasing
+    a membership plan:
+
+    1. Create (or reactivate) an AcademyMembership with STUDENT role.
+    2. Create an AthleteProfile for the user if one does not exist yet.
+    3. Create a Subscription to the chosen plan via SubscriptionService.
+    """
+
+    @staticmethod
+    @transaction.atomic
+    def enroll(user, academy, plan: MembershipPlan) -> dict:
+        """
+        Enroll *user* in *academy* under *plan*.
+
+        Raises ValueError if the plan does not belong to the academy or is inactive.
+        Returns a dict with keys ``membership`` and ``subscription``.
+        """
+        if plan.academy_id != academy.pk:
+            raise ValueError("The selected plan does not belong to this academy.")
+        if not plan.is_active:
+            raise ValueError("The selected plan is not currently active.")
+
+        # 1. AcademyMembership — create or reactivate
+        membership, _ = AcademyMembership.objects.get_or_create(
+            user=user,
+            academy=academy,
+            defaults={"role": AcademyMembership.Role.STUDENT, "is_active": True},
+        )
+        if not membership.is_active:
+            membership.is_active = True
+            membership.save(update_fields=["is_active"])
+
+        # 2. AthleteProfile — create if the user has none yet
+        profile, _ = AthleteProfile.objects.get_or_create(
+            user=user,
+            defaults={"academy": academy},
+        )
+
+        # 3. Guard: reject if the athlete already has an active subscription at this academy
+        already_subscribed = Subscription.objects.filter(
+            athlete=profile,
+            plan__academy=academy,
+            status=Subscription.Status.ACTIVE,
+        ).exists()
+        if already_subscribed:
+            raise ValueError(
+                "You already have an active subscription at this academy. "
+                "Cancel it before subscribing to a new plan."
+            )
+
+        # 4. Subscription
+        subscription = SubscriptionService.subscribe(athlete=profile, plan=plan)
+
+        return {"membership": membership, "subscription": subscription}
 
 
 # ---------------------------------------------------------------------------

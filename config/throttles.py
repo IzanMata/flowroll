@@ -24,3 +24,12 @@ class TokenRefreshRateThrottle(UserRateThrottle):
     """
 
     scope = "token_refresh"
+
+
+class PasswordResetRateThrottle(AnonRateThrottle):
+    """
+    Prevent email bombing on the password-reset request endpoint.
+    5 requests per minute per IP address.
+    """
+
+    scope = "password_reset"

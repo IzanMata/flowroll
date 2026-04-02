@@ -40,6 +40,7 @@ urlpatterns = [
         name="token_refresh",
     ),
     path("api/auth/me/", me, name="auth_me"),
+    path("api/auth/", include("accounts.urls")),
     # Domain apps
     path("api/athletes/", include("athletes.urls")),
     path("api/techniques/", include("techniques.urls")),

@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from academies.models import Academy
+
 from .models import (DojoTabTransaction, MembershipPlan, Seminar,
                      SeminarRegistration, Subscription)
 
@@ -110,6 +112,19 @@ class SeminarSerializer(serializers.ModelSerializer):
             "status",
             "spots_remaining",
         ]
+
+
+class EnrollmentSerializer(serializers.Serializer):
+    """Input serializer for the enrollment endpoint."""
+
+    academy = serializers.PrimaryKeyRelatedField(
+        queryset=Academy.objects.filter(is_active=True),
+        help_text="ID of the academy to join.",
+    )
+    plan = serializers.PrimaryKeyRelatedField(
+        queryset=MembershipPlan.objects.filter(is_active=True),
+        help_text="ID of the membership plan to subscribe to.",
+    )
 
 
 class SeminarRegistrationSerializer(serializers.ModelSerializer):
