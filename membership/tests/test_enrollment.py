@@ -1,5 +1,5 @@
 """
-Tests for EnrollmentService and POST /api/membership/enroll/
+Tests for EnrollmentService and POST /api/v1/membership/enroll/
 
 Critical: a user must not be able to create duplicate active subscriptions
 at the same academy.
@@ -18,7 +18,7 @@ from factories import AcademyFactory, MembershipPlanFactory, SubscriptionFactory
 from membership.models import MembershipPlan, Subscription
 from membership.services import EnrollmentService
 
-ENROLL_URL = "/api/membership/enroll/"
+ENROLL_URL = "/api/v1/membership/enroll/"
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────

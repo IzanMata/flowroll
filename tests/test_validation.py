@@ -59,7 +59,7 @@ class TestAthleteProfileValidation:
     def test_stripes_above_maximum_returns_400(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"stripes": 5},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -67,7 +67,7 @@ class TestAthleteProfileValidation:
     def test_stripes_negative_returns_400(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"stripes": -1},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -75,7 +75,7 @@ class TestAthleteProfileValidation:
     def test_stripes_at_maximum_accepted(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"stripes": 4},
         )
         assert r.status_code == status.HTTP_200_OK
@@ -83,7 +83,7 @@ class TestAthleteProfileValidation:
     def test_stripes_at_zero_accepted(self):
         client, profile, academy = self._own_client_and_profile(stripes=2)
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"stripes": 0},
         )
         assert r.status_code == status.HTTP_200_OK
@@ -92,7 +92,7 @@ class TestAthleteProfileValidation:
     def test_weight_below_minimum_returns_400(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"weight": 0.05},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -100,7 +100,7 @@ class TestAthleteProfileValidation:
     def test_weight_zero_returns_400(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"weight": 0},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -108,7 +108,7 @@ class TestAthleteProfileValidation:
     def test_weight_negative_returns_400(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"weight": -10.0},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -116,7 +116,7 @@ class TestAthleteProfileValidation:
     def test_weight_minimum_valid_accepted(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"weight": 0.1},
         )
         assert r.status_code == status.HTTP_200_OK
@@ -125,7 +125,7 @@ class TestAthleteProfileValidation:
         """weight is nullable; explicit null should be accepted."""
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"weight": None},
             format="json",
         )
@@ -136,7 +136,7 @@ class TestAthleteProfileValidation:
     def test_non_numeric_stripes_returns_400(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"stripes": "many"},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -144,7 +144,7 @@ class TestAthleteProfileValidation:
     def test_invalid_belt_choice_returns_400(self):
         client, profile, academy = self._own_client_and_profile()
         r = client.patch(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}",
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}",
             {"belt": "rainbow"},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -161,7 +161,7 @@ class TestTrainingClassValidation:
     def test_missing_title_returns_400(self):
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/attendance/classes/?academy={academy.pk}",
+            f"/api/v1/attendance/classes/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "class_type": "GI",
@@ -177,7 +177,7 @@ class TestTrainingClassValidation:
         """class_type defaults to GI when omitted — not a required field."""
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/attendance/classes/?academy={academy.pk}",
+            f"/api/v1/attendance/classes/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "title": "Evening Class",
@@ -192,7 +192,7 @@ class TestTrainingClassValidation:
     def test_invalid_class_type_choice_returns_400(self):
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/attendance/classes/?academy={academy.pk}",
+            f"/api/v1/attendance/classes/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "title": "Weird Class",
@@ -208,7 +208,7 @@ class TestTrainingClassValidation:
     def test_zero_duration_minutes_returns_400(self):
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/attendance/classes/?academy={academy.pk}",
+            f"/api/v1/attendance/classes/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "title": "Zero-duration",
@@ -223,7 +223,7 @@ class TestTrainingClassValidation:
     def test_negative_duration_returns_400(self):
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/attendance/classes/?academy={academy.pk}",
+            f"/api/v1/attendance/classes/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "title": "Negative time",
@@ -238,7 +238,7 @@ class TestTrainingClassValidation:
     def test_malformed_scheduled_at_returns_400(self):
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/attendance/classes/?academy={academy.pk}",
+            f"/api/v1/attendance/classes/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "title": "Bad Date",
@@ -256,7 +256,7 @@ class TestTrainingClassValidation:
         academy, prof, client = _professor_setup()
         for ct in ("GI", "NOGI", "OPEN_MAT"):
             r = client.post(
-                f"/api/attendance/classes/?academy={academy.pk}",
+                f"/api/v1/attendance/classes/?academy={academy.pk}",
                 {
                     "academy": academy.pk,
                     "title": f"{ct} class",
@@ -293,7 +293,7 @@ class TestMatchEventValidation:
     def test_add_event_missing_athlete_returns_400(self):
         academy, match, user_a, _, client = self._match()
         r = client.post(
-            f"/api/matches/{match.pk}/add_event/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/add_event/?academy={academy.pk}",
             {
                 "event_type": "POINTS",
                 "timestamp": 30,
@@ -306,7 +306,7 @@ class TestMatchEventValidation:
     def test_add_event_invalid_event_type_returns_400(self):
         academy, match, user_a, _, client = self._match()
         r = client.post(
-            f"/api/matches/{match.pk}/add_event/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/add_event/?academy={academy.pk}",
             {
                 "athlete": user_a.pk,
                 "event_type": "GOAL",          # not a valid choice
@@ -321,7 +321,7 @@ class TestMatchEventValidation:
         academy, match, _, _, client = self._match()
         outsider = UserFactory()
         r = client.post(
-            f"/api/matches/{match.pk}/add_event/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/add_event/?academy={academy.pk}",
             {
                 "athlete": outsider.pk,
                 "event_type": "POINTS",
@@ -335,7 +335,7 @@ class TestMatchEventValidation:
     def test_finish_match_missing_winner_returns_400(self):
         academy, match, _, _, client = self._match()
         r = client.post(
-            f"/api/matches/{match.pk}/finish_match/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/finish_match/?academy={academy.pk}",
             {},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -344,7 +344,7 @@ class TestMatchEventValidation:
     def test_finish_match_non_participant_winner_returns_400(self):
         academy, match, _, _, client = self._match()
         r = client.post(
-            f"/api/matches/{match.pk}/finish_match/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/finish_match/?academy={academy.pk}",
             {"winner_id": 99999},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -352,7 +352,7 @@ class TestMatchEventValidation:
     def test_finish_match_string_winner_id_returns_400(self):
         academy, match, _, _, client = self._match()
         r = client.post(
-            f"/api/matches/{match.pk}/finish_match/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/finish_match/?academy={academy.pk}",
             {"winner_id": "notanint"},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -369,7 +369,7 @@ class TestTimerPresetValidation:
     def test_invalid_format_choice_returns_400(self):
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/tatami/timer-presets/?academy={academy.pk}",
+            f"/api/v1/tatami/timer-presets/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "name": "Bad Preset",
@@ -385,7 +385,7 @@ class TestTimerPresetValidation:
     def test_missing_name_returns_400(self):
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/tatami/timer-presets/?academy={academy.pk}",
+            f"/api/v1/tatami/timer-presets/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "format": "IBJJF",
@@ -402,7 +402,7 @@ class TestTimerPresetValidation:
         academy, prof, client = _professor_setup()
         for fmt in ("IBJJF", "ADCC", "POSITIONAL", "CUSTOM"):
             r = client.post(
-                f"/api/tatami/timer-presets/?academy={academy.pk}",
+                f"/api/v1/tatami/timer-presets/?academy={academy.pk}",
                 {
                     "academy": academy.pk,
                     "name": f"{fmt} preset",
@@ -431,7 +431,7 @@ class TestPairAthletesValidation:
         academy, prof, client = _professor_setup()
         athlete = AthleteProfileFactory(academy=academy)
         r = client.post(
-            f"/api/tatami/matchups/pair_athletes/?academy={academy.pk}",
+            f"/api/v1/tatami/matchups/pair_athletes/?academy={academy.pk}",
             {
                 "athlete_ids": [athlete.pk],
                 "match_format": "TOURNAMENT",
@@ -443,7 +443,7 @@ class TestPairAthletesValidation:
     def test_empty_athlete_list_returns_400(self):
         academy, prof, client = _professor_setup()
         r = client.post(
-            f"/api/tatami/matchups/pair_athletes/?academy={academy.pk}",
+            f"/api/v1/tatami/matchups/pair_athletes/?academy={academy.pk}",
             {"athlete_ids": [], "match_format": "TOURNAMENT"},
             format="json",
         )
@@ -453,7 +453,7 @@ class TestPairAthletesValidation:
         academy, prof, client = _professor_setup()
         athletes = [AthleteProfileFactory(academy=academy) for _ in range(2)]
         r = client.post(
-            f"/api/tatami/matchups/pair_athletes/?academy={academy.pk}",
+            f"/api/v1/tatami/matchups/pair_athletes/?academy={academy.pk}",
             {
                 "athlete_ids": [a.pk for a in athletes],
                 "match_format": "ROUND_ROBIN",   # not a valid choice
@@ -469,7 +469,7 @@ class TestPairAthletesValidation:
         foreign_athlete = AthleteProfileFactory(academy=other_academy)
         local_athlete = AthleteProfileFactory(academy=academy)
         r = client.post(
-            f"/api/tatami/matchups/pair_athletes/?academy={academy.pk}",
+            f"/api/v1/tatami/matchups/pair_athletes/?academy={academy.pk}",
             {
                 "athlete_ids": [local_athlete.pk, foreign_athlete.pk],
                 "match_format": "TOURNAMENT",
@@ -493,7 +493,7 @@ class TestQRCheckInValidation:
         AcademyMembershipFactory(user=user, academy=academy, role="STUDENT", is_active=True)
         AthleteProfileFactory(user=user, academy=academy)
         client = _client(user)
-        r = client.post("/api/attendance/classes/qr_checkin/", {"token": ""})
+        r = client.post("/api/v1/attendance/classes/qr_checkin/", {"token": ""})
         assert r.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_missing_token_returns_400(self):
@@ -501,7 +501,7 @@ class TestQRCheckInValidation:
         user = UserFactory()
         AthleteProfileFactory(user=user, academy=academy)
         client = _client(user)
-        r = client.post("/api/attendance/classes/qr_checkin/", {})
+        r = client.post("/api/v1/attendance/classes/qr_checkin/", {})
         assert r.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_nonexistent_token_returns_400(self):
@@ -509,7 +509,7 @@ class TestQRCheckInValidation:
         AthleteProfileFactory(user=user)
         client = _client(user)
         r = client.post(
-            "/api/attendance/classes/qr_checkin/",
+            "/api/v1/attendance/classes/qr_checkin/",
             {"token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST

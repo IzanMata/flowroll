@@ -15,7 +15,7 @@ from rest_framework import status
 
 from factories import AcademyFactory, AcademyMembershipFactory, UserFactory
 
-MATCHES_URL = "/api/matches/"
+MATCHES_URL = "/api/v1/matches/"
 
 
 def match_detail_url(pk):

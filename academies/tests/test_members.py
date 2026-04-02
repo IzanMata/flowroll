@@ -1,9 +1,9 @@
 """
 Tests for academy member management:
-  GET    /api/academies/{id}/members/            — list members
-  POST   /api/academies/{id}/members/            — add member by email (OWNER only)
-  PATCH  /api/academies/{id}/members/{user_id}/  — change role (OWNER only)
-  DELETE /api/academies/{id}/members/{user_id}/  — remove member (OWNER only)
+  GET    /api/v1/academies/{id}/members/            — list members
+  POST   /api/v1/academies/{id}/members/            — add member by email (OWNER only)
+  PATCH  /api/v1/academies/{id}/members/{user_id}/  — change role (OWNER only)
+  DELETE /api/v1/academies/{id}/members/{user_id}/  — remove member (OWNER only)
 """
 
 import pytest
@@ -18,11 +18,11 @@ from factories import AcademyFactory, AcademyMembershipFactory, UserFactory
 
 
 def members_url(academy_id):
-    return f"/api/academies/{academy_id}/members/"
+    return f"/api/v1/academies/{academy_id}/members/"
 
 
 def member_url(academy_id, user_id):
-    return f"/api/academies/{academy_id}/members/{user_id}/"
+    return f"/api/v1/academies/{academy_id}/members/{user_id}/"
 
 
 @pytest.fixture

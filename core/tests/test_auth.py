@@ -219,19 +219,19 @@ class TestBearerTokenAccess:
         access = login.data["access"]
 
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
-        # /api/academies/ requires IsAuthenticated
-        response = client.get("/api/academies/")
+        # /api/v1/academies/ requires IsAuthenticated
+        response = client.get("/api/v1/academies/")
         assert response.status_code != status.HTTP_401_UNAUTHORIZED
 
     def test_no_token_returns_401_on_protected_endpoint(self, db):
         anon = APIClient()
-        response = anon.get("/api/academies/")
+        response = anon.get("/api/v1/academies/")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_malformed_bearer_token_returns_401(self, db):
         bad = APIClient()
         bad.credentials(HTTP_AUTHORIZATION="Bearer notarealtoken")
-        response = bad.get("/api/academies/")
+        response = bad.get("/api/v1/academies/")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_token_generated_with_simplejwt_helper_works(self, db):
@@ -240,7 +240,7 @@ class TestBearerTokenAccess:
         refresh = RefreshToken.for_user(user)
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
-        response = client.get("/api/academies/")
+        response = client.get("/api/v1/academies/")
         assert response.status_code != status.HTTP_401_UNAUTHORIZED
 
 

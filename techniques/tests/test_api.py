@@ -13,9 +13,9 @@ from rest_framework import status
 
 from factories import UserFactory
 
-TECHNIQUES_URL = "/api/techniques/techniques/"
-BELTS_URL = "/api/techniques/belts/"
-CATEGORIES_URL = "/api/techniques/categories/"
+TECHNIQUES_URL = "/api/v1/techniques/techniques/"
+BELTS_URL = "/api/v1/techniques/belts/"
+CATEGORIES_URL = "/api/v1/techniques/categories/"
 
 
 # ─── Authentication guard ─────────────────────────────────────────────────────

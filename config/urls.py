@@ -4,6 +4,9 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (SpectacularAPIView, SpectacularRedocView,
                                    SpectacularSwaggerView)
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from rest_framework_simplejwt.views import (TokenObtainPairView,
                                             TokenRefreshView)
 
@@ -26,9 +29,38 @@ class ThrottledTokenRefreshView(TokenRefreshView):
 # Falls back to the standard "admin/" in development.
 _admin_url = os.environ.get("ADMIN_URL", "admin/")
 
+_is_production = os.environ.get("DJANGO_ENV") == "production"
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def api_root(request):
+    """
+    FlowRoll API entry point.
+
+    Returns available API versions and relevant links so that clients
+    hitting the root URL get a meaningful response instead of a 404.
+    """
+    payload = {
+        "name": "FlowRoll API",
+        "current_version": "v1",
+        "status": "ok",
+        "endpoints": {
+            "auth": request.build_absolute_uri("/api/auth/"),
+            "v1": request.build_absolute_uri("/api/v1/"),
+        },
+    }
+    if not _is_production:
+        payload["docs"] = request.build_absolute_uri("/api/docs/")
+
+    return Response(payload)
+
+
 urlpatterns = [
+    path("", api_root, name="api-root"),
     path(_admin_url, admin.site.urls),
 
+    # ── Auth (unversioned — stable infrastructure) ───────────────────────────
     path(
         "api/auth/token/",
         ThrottledTokenObtainPairView.as_view(),
@@ -41,21 +73,14 @@ urlpatterns = [
     ),
     path("api/auth/me/", me, name="auth_me"),
     path("api/auth/", include("accounts.urls")),
-    # Domain apps
-    path("api/athletes/", include("athletes.urls")),
-    path("api/techniques/", include("techniques.urls")),
-    path("api/matches/", include("matches.urls")),
-    path("api/academies/", include("academies.urls")),
-    path("api/attendance/", include("attendance.urls")),
-    path("api/tatami/", include("tatami.urls")),
-    path("api/membership/", include("membership.urls")),
-    path("api/community/", include("community.urls")),
-    path("api/learning/", include("learning.urls")),
+
+    # ── Domain apps (versioned) ───────────────────────────────────────────────
+    path("api/v1/", include("config.urls_v1")),
 ]
 
 # API docs are only exposed outside production to avoid leaking the full
 # endpoint surface to potential attackers.
-if os.environ.get("DJANGO_ENV") != "production":
+if not _is_production:
     urlpatterns += [
         path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
         path(

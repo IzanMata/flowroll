@@ -66,7 +66,7 @@ class TestTimerSessionStateMachine:
         academy, prof, client = _prof_setup()
         preset = TimerPresetFactory(academy=academy)
         r = client.post(
-            f"/api/tatami/timer-presets/{preset.pk}/start_session/"
+            f"/api/v1/tatami/timer-presets/{preset.pk}/start_session/"
             f"?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_201_CREATED
@@ -77,7 +77,7 @@ class TestTimerSessionStateMachine:
         academy, prof, client = _prof_setup()
         session = _create_session(academy, TimerSession.Status.RUNNING)
         r = client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/pause/"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/pause/"
             f"?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
@@ -114,7 +114,7 @@ class TestTimerSessionStateMachine:
         academy, prof, client = _prof_setup()
         session = _create_session(academy, TimerSession.Status.RUNNING)
         r = client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/finish/"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/finish/"
             f"?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
@@ -126,12 +126,12 @@ class TestTimerSessionStateMachine:
         session = _create_session(academy, TimerSession.Status.RUNNING)
         # Pause first
         client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/pause/"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/pause/"
             f"?academy={academy.pk}"
         )
         # Then finish
         r = client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/finish/"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/finish/"
             f"?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
@@ -144,7 +144,7 @@ class TestTimerSessionStateMachine:
         academy, prof, client = _prof_setup()
         session = _create_session(academy, TimerSession.Status.IDLE)
         r = client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/pause/"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/pause/"
             f"?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
@@ -154,11 +154,11 @@ class TestTimerSessionStateMachine:
         session = _create_session(academy, TimerSession.Status.RUNNING)
         # First pause succeeds
         client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/pause/?academy={academy.pk}"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/pause/?academy={academy.pk}"
         )
         # Second pause must fail
         r = client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/pause/?academy={academy.pk}"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/pause/?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -166,10 +166,10 @@ class TestTimerSessionStateMachine:
         academy, prof, client = _prof_setup()
         session = _create_session(academy, TimerSession.Status.RUNNING)
         client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/finish/?academy={academy.pk}"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/finish/?academy={academy.pk}"
         )
         r = client.post(
-            f"/api/tatami/timer-sessions/{session.pk}/pause/?academy={academy.pk}"
+            f"/api/v1/tatami/timer-sessions/{session.pk}/pause/?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -216,7 +216,7 @@ class TestTimerSessionStateMachine:
         academy, prof, client = _prof_setup()
         preset = TimerPresetFactory(academy=academy)
         r = client.post(
-            f"/api/tatami/timer-presets/{preset.pk}/start_session/"
+            f"/api/v1/tatami/timer-presets/{preset.pk}/start_session/"
             f"?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_201_CREATED
@@ -251,7 +251,7 @@ class TestMatchStateMachine:
     def test_finish_match_sets_is_finished_true(self):
         academy, match, user_a, _, client = self._setup()
         r = client.post(
-            f"/api/matches/{match.pk}/finish_match/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/finish_match/?academy={academy.pk}",
             {"winner_id": user_a.pk},
         )
         assert r.status_code == status.HTTP_200_OK
@@ -262,7 +262,7 @@ class TestMatchStateMachine:
     def test_finish_match_response_is_serialized_match(self):
         academy, match, user_a, _, client = self._setup()
         r = client.post(
-            f"/api/matches/{match.pk}/finish_match/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/finish_match/?academy={academy.pk}",
             {"winner_id": user_a.pk},
         )
         assert r.status_code == status.HTTP_200_OK
@@ -272,7 +272,7 @@ class TestMatchStateMachine:
 
     def test_score_starts_at_zero(self):
         academy, match, _, _, client = self._setup()
-        r = client.get(f"/api/matches/{match.pk}/?academy={academy.pk}")
+        r = client.get(f"/api/v1/matches/{match.pk}/?academy={academy.pk}")
         assert r.status_code == status.HTTP_200_OK
         assert r.data["score_a"] == 0
         assert r.data["score_b"] == 0
@@ -280,7 +280,7 @@ class TestMatchStateMachine:
     def test_add_points_event_increments_score_a(self):
         academy, match, user_a, _, client = self._setup()
         r = client.post(
-            f"/api/matches/{match.pk}/add_event/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/add_event/?academy={academy.pk}",
             {
                 "athlete": user_a.pk,
                 "event_type": "POINTS",
@@ -297,7 +297,7 @@ class TestMatchStateMachine:
         """SUBMISSION events have no points_awarded but are logged."""
         academy, match, user_a, _, client = self._setup()
         r = client.post(
-            f"/api/matches/{match.pk}/add_event/?academy={academy.pk}",
+            f"/api/v1/matches/{match.pk}/add_event/?academy={academy.pk}",
             {
                 "athlete": user_a.pk,
                 "event_type": "SUBMISSION",
@@ -320,7 +320,7 @@ class TestMatchStateMachine:
         ]
         for athlete, pts, desc in events:
             r = client.post(
-                f"/api/matches/{match.pk}/add_event/?academy={academy.pk}",
+                f"/api/v1/matches/{match.pk}/add_event/?academy={academy.pk}",
                 {
                     "athlete": athlete.pk,
                     "event_type": "POINTS",

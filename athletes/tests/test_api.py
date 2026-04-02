@@ -16,7 +16,7 @@ from rest_framework import status
 from factories import (AcademyMembershipFactory, AthleteProfileFactory,
                        UserFactory)
 
-ATHLETES_URL = "/api/athletes/"
+ATHLETES_URL = "/api/v1/athletes/"
 
 
 def athlete_detail_url(pk):

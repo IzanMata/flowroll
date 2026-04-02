@@ -1,5 +1,5 @@
 """
-Tests for POST /api/membership/{academy_id}/leave/
+Tests for POST /api/v1/membership/{academy_id}/leave/
 
 Rules:
 - STUDENT and PROFESSOR can leave.
@@ -23,7 +23,7 @@ from membership.services import EnrollmentService, LeaveAcademyService
 
 
 def leave_url(academy_id):
-    return f"/api/membership/{academy_id}/leave/"
+    return f"/api/v1/membership/{academy_id}/leave/"
 
 
 @pytest.fixture

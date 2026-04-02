@@ -61,7 +61,7 @@ class TestTrainingClassFilters:
     def test_scheduled_after_excludes_past_classes(self):
         academy, client, past, future = self._setup()
         r = client.get(
-            f"/api/attendance/classes/",
+            f"/api/v1/attendance/classes/",
             {"academy": academy.pk, "scheduled_after": timezone.now().isoformat()},
         )
         assert r.status_code == status.HTTP_200_OK
@@ -72,7 +72,7 @@ class TestTrainingClassFilters:
     def test_scheduled_before_excludes_future_classes(self):
         academy, client, past, future = self._setup()
         r = client.get(
-            f"/api/attendance/classes/",
+            f"/api/v1/attendance/classes/",
             {"academy": academy.pk, "scheduled_before": timezone.now().isoformat()},
         )
         assert r.status_code == status.HTTP_200_OK
@@ -83,7 +83,7 @@ class TestTrainingClassFilters:
     def test_filter_by_class_type_gi(self):
         academy, client, past, future = self._setup()
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&class_type=GI"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&class_type=GI"
         )
         assert r.status_code == status.HTTP_200_OK
         for item in r.data["results"]:
@@ -92,7 +92,7 @@ class TestTrainingClassFilters:
     def test_filter_by_class_type_nogi(self):
         academy, client, past, future = self._setup()
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&class_type=NOGI"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&class_type=NOGI"
         )
         assert r.status_code == status.HTTP_200_OK
         for item in r.data["results"]:
@@ -109,7 +109,7 @@ class TestTrainingClassFilters:
 
         student_client, _ = _member_client(academy)
         r = student_client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&professor={prof_user_a.pk}"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&professor={prof_user_a.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
         ids = [item["id"] for item in r.data["results"]]
@@ -119,7 +119,7 @@ class TestTrainingClassFilters:
     def test_search_by_title(self):
         academy, client, _, _ = self._setup()
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&search=Past"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&search=Past"
         )
         assert r.status_code == status.HTTP_200_OK
         assert r.data["count"] >= 1
@@ -134,7 +134,7 @@ class TestTrainingClassFilters:
         TrainingClassFactory(academy=academy, duration_minutes=60, title="Medium")
 
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&ordering=duration_minutes"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&ordering=duration_minutes"
         )
         assert r.status_code == status.HTTP_200_OK
         durations = [item["duration_minutes"] for item in r.data["results"]]
@@ -147,7 +147,7 @@ class TestTrainingClassFilters:
         TrainingClassFactory(academy=academy, duration_minutes=45, title="C2")
 
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&ordering=-duration_minutes"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&ordering=-duration_minutes"
         )
         assert r.status_code == status.HTTP_200_OK
         durations = [item["duration_minutes"] for item in r.data["results"]]
@@ -156,7 +156,7 @@ class TestTrainingClassFilters:
     def test_ordering_by_scheduled_at_ascending(self):
         academy, client, past, future = self._setup()
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&ordering=scheduled_at"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&ordering=scheduled_at"
         )
         assert r.status_code == status.HTTP_200_OK
         ids = [item["id"] for item in r.data["results"]]
@@ -165,7 +165,7 @@ class TestTrainingClassFilters:
     def test_ordering_by_scheduled_at_descending(self):
         academy, client, past, future = self._setup()
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&ordering=-scheduled_at"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&ordering=-scheduled_at"
         )
         assert r.status_code == status.HTTP_200_OK
         ids = [item["id"] for item in r.data["results"]]
@@ -186,7 +186,7 @@ class TestPagination:
         for i in range(5):
             TrainingClassFactory(academy=academy, title=f"Class {i}")
 
-        r = client.get(f"/api/attendance/classes/?academy={academy.pk}")
+        r = client.get(f"/api/v1/attendance/classes/?academy={academy.pk}")
         assert r.status_code == status.HTTP_200_OK
         assert "count" in r.data
         assert "results" in r.data
@@ -201,7 +201,7 @@ class TestPagination:
             TrainingClassFactory(academy=academy, title=f"Class {i}")
 
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&page_size=3"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&page_size=3"
         )
         assert r.status_code == status.HTTP_200_OK
         assert len(r.data["results"]) == 3
@@ -216,7 +216,7 @@ class TestPagination:
             TrainingClassFactory(academy=academy, title=f"Class {i}")
 
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&page_size=999999"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&page_size=999999"
         )
         assert r.status_code == status.HTTP_200_OK
         # Page size should be capped; all 5 items still returned (< max)
@@ -229,10 +229,10 @@ class TestPagination:
             TrainingClassFactory(academy=academy, title=f"Class {i}")
 
         r1 = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&page_size=2&page=1"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&page_size=2&page=1"
         )
         r2 = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&page_size=2&page=2"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&page_size=2&page=2"
         )
         assert r1.status_code == status.HTTP_200_OK
         assert r2.status_code == status.HTTP_200_OK
@@ -246,7 +246,7 @@ class TestPagination:
         TrainingClassFactory(academy=academy, title="Only one")
 
         r = client.get(
-            f"/api/attendance/classes/?academy={academy.pk}&page_size=1&page=999"
+            f"/api/v1/attendance/classes/?academy={academy.pk}&page_size=1&page=999"
         )
         # DRF returns 404 when page is out of range
         assert r.status_code in (status.HTTP_404_NOT_FOUND, status.HTTP_200_OK)
@@ -267,7 +267,7 @@ class TestWeightClassSearch:
         c = APIClient()
         c.force_authenticate(user=user)
 
-        r = c.get("/api/tatami/weight-classes/?search=Middle")
+        r = c.get("/api/v1/tatami/weight-classes/?search=Middle")
         assert r.status_code == status.HTTP_200_OK
         names = [item["name"] for item in r.data["results"]]
         assert "Middle" in names
@@ -279,7 +279,7 @@ class TestWeightClassSearch:
         c = APIClient()
         c.force_authenticate(user=user)
 
-        r = c.get("/api/tatami/weight-classes/?search=XXXXXXXXXX")
+        r = c.get("/api/v1/tatami/weight-classes/?search=XXXXXXXXXX")
         assert r.status_code == status.HTTP_200_OK
         assert r.data["count"] == 0
 
@@ -302,7 +302,7 @@ class TestTimerPresetFiltering:
 
         c = APIClient()
         c.force_authenticate(user=user)
-        r = c.get(f"/api/tatami/timer-presets/?academy={academy_a.pk}")
+        r = c.get(f"/api/v1/tatami/timer-presets/?academy={academy_a.pk}")
 
         assert r.status_code == status.HTTP_200_OK
         ids = [item["id"] for item in r.data["results"]]
@@ -314,7 +314,7 @@ class TestTimerPresetFiltering:
         TimerPresetFactory()
         c = APIClient()
         c.force_authenticate(user=user)
-        r = c.get("/api/tatami/timer-presets/")
+        r = c.get("/api/v1/tatami/timer-presets/")
         assert r.status_code in (status.HTTP_200_OK, status.HTTP_403_FORBIDDEN)
         if r.status_code == status.HTTP_200_OK:
             assert r.data["count"] == 0

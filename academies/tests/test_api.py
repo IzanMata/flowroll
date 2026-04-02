@@ -14,7 +14,7 @@ from rest_framework import status
 from core.models import AcademyMembership
 from factories import AcademyFactory, AcademyMembershipFactory, UserFactory
 
-ACADEMIES_URL = "/api/academies/"
+ACADEMIES_URL = "/api/v1/academies/"
 
 
 def academy_detail_url(pk):

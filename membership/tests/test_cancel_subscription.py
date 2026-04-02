@@ -1,5 +1,5 @@
 """
-Tests for POST /api/membership/subscriptions/{id}/cancel/
+Tests for POST /api/v1/membership/subscriptions/{id}/cancel/
 """
 
 from decimal import Decimal
@@ -16,7 +16,7 @@ from membership.services import SubscriptionService
 
 
 def cancel_url(subscription_id):
-    return f"/api/membership/subscriptions/{subscription_id}/cancel/"
+    return f"/api/v1/membership/subscriptions/{subscription_id}/cancel/"
 
 
 @pytest.fixture

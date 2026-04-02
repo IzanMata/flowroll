@@ -1,5 +1,5 @@
 """
-Tests for GET /api/academies/public/ — search and filter
+Tests for GET /api/v1/academies/public/ — search and filter
 """
 
 import pytest
@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 
 from factories import AcademyFactory
 
-URL = "/api/academies/public/"
+URL = "/api/v1/academies/public/"
 
 
 @pytest.fixture

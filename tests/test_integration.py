@@ -55,7 +55,7 @@ class TestCheckInChain:
         token = QRCodeService.generate(tc).token
 
         r = _client(user).post(
-            "/api/attendance/classes/qr_checkin/", {"token": token}
+            "/api/v1/attendance/classes/qr_checkin/", {"token": token}
         )
         assert r.status_code == status.HTTP_201_CREATED
         assert CheckIn.objects.filter(athlete=athlete, training_class=tc).exists()
@@ -68,7 +68,7 @@ class TestCheckInChain:
         tc = TrainingClassFactory(academy=academy, duration_minutes=90)
         token = QRCodeService.generate(tc).token
 
-        _client(user).post("/api/attendance/classes/qr_checkin/", {"token": token})
+        _client(user).post("/api/v1/attendance/classes/qr_checkin/", {"token": token})
 
         athlete.refresh_from_db()
         assert abs(athlete.mat_hours - 1.5) < 0.001, (
@@ -84,7 +84,7 @@ class TestCheckInChain:
         token = QRCodeService.generate(tc).token
 
         r = _client(user).post(
-            "/api/attendance/classes/qr_checkin/", {"token": token}
+            "/api/v1/attendance/classes/qr_checkin/", {"token": token}
         )
         assert r.status_code == status.HTTP_201_CREATED
         for field in ("athlete", "training_class", "checked_in_at"):
@@ -98,7 +98,7 @@ class TestCheckInChain:
         tc = TrainingClassFactory(academy=academy, duration_minutes=60)
 
         r = _client(prof).post(
-            f"/api/attendance/classes/manual_checkin/?academy={academy.pk}",
+            f"/api/v1/attendance/classes/manual_checkin/?academy={academy.pk}",
             {"athlete_id": athlete.pk, "training_class_id": tc.pk},
         )
         assert r.status_code == status.HTTP_201_CREATED
@@ -115,10 +115,10 @@ class TestCheckInChain:
 
         qr1 = QRCodeService.generate(tc)
         client = _client(user)
-        client.post("/api/attendance/classes/qr_checkin/", {"token": qr1.token})
+        client.post("/api/v1/attendance/classes/qr_checkin/", {"token": qr1.token})
 
         qr2 = QRCodeService.generate(tc)
-        r = client.post("/api/attendance/classes/qr_checkin/", {"token": qr2.token})
+        r = client.post("/api/v1/attendance/classes/qr_checkin/", {"token": qr2.token})
         assert r.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_four_checkins_accumulate_mat_hours(self):
@@ -132,7 +132,7 @@ class TestCheckInChain:
         for _ in range(4):
             tc = TrainingClassFactory(academy=academy, duration_minutes=60)
             token = QRCodeService.generate(tc).token
-            r = client.post("/api/attendance/classes/qr_checkin/", {"token": token})
+            r = client.post("/api/v1/attendance/classes/qr_checkin/", {"token": token})
             assert r.status_code == status.HTTP_201_CREATED
 
         athlete.refresh_from_db()
@@ -162,12 +162,12 @@ class TestTimerLifecycle:
         aq = f"?academy={academy.pk}"
 
         # Start
-        r = client.post(f"/api/tatami/timer-presets/{preset.pk}/start_session/{aq}")
+        r = client.post(f"/api/v1/tatami/timer-presets/{preset.pk}/start_session/{aq}")
         assert r.status_code == status.HTTP_201_CREATED
         session_id = r.data["id"]
 
         # Pause
-        r = client.post(f"/api/tatami/timer-sessions/{session_id}/pause/{aq}")
+        r = client.post(f"/api/v1/tatami/timer-sessions/{session_id}/pause/{aq}")
         assert r.status_code == status.HTTP_200_OK
 
         # Resume via service (no dedicated resume endpoint exposed)
@@ -177,7 +177,7 @@ class TestTimerLifecycle:
         assert session.status == TimerSession.Status.RUNNING
 
         # Finish
-        r = client.post(f"/api/tatami/timer-sessions/{session_id}/finish/{aq}")
+        r = client.post(f"/api/v1/tatami/timer-sessions/{session_id}/finish/{aq}")
         assert r.status_code == status.HTTP_200_OK
         assert r.data["status"] == TimerSession.Status.FINISHED
 
@@ -190,8 +190,8 @@ class TestTimerLifecycle:
         aq = f"?academy={academy.pk}"
 
         before = TimerSession.objects.count()
-        client.post(f"/api/tatami/timer-presets/{preset.pk}/start_session/{aq}")
-        client.post(f"/api/tatami/timer-presets/{preset.pk}/start_session/{aq}")
+        client.post(f"/api/v1/tatami/timer-presets/{preset.pk}/start_session/{aq}")
+        client.post(f"/api/v1/tatami/timer-presets/{preset.pk}/start_session/{aq}")
         after = TimerSession.objects.count()
         assert after - before == 2
 
@@ -212,7 +212,7 @@ class TestMatchupAndMatchFlow:
         client = _client(prof)
 
         r = client.post(
-            f"/api/tatami/matchups/pair_athletes/?academy={academy.pk}",
+            f"/api/v1/tatami/matchups/pair_athletes/?academy={academy.pk}",
             {
                 "athlete_ids": [a.pk for a in athletes],
                 "match_format": "TOURNAMENT",
@@ -237,7 +237,7 @@ class TestMatchupAndMatchFlow:
 
         for i in range(3):
             r = client.post(
-                f"/api/matches/{match.pk}/add_event/{aq}",
+                f"/api/v1/matches/{match.pk}/add_event/{aq}",
                 {
                     "athlete": user_a.pk,
                     "event_type": "POINTS",
@@ -249,7 +249,7 @@ class TestMatchupAndMatchFlow:
             assert r.status_code == status.HTTP_201_CREATED
 
         r = client.post(
-            f"/api/matches/{match.pk}/add_event/{aq}",
+            f"/api/v1/matches/{match.pk}/add_event/{aq}",
             {
                 "athlete": user_b.pk,
                 "event_type": "POINTS",
@@ -261,7 +261,7 @@ class TestMatchupAndMatchFlow:
         assert r.status_code == status.HTTP_201_CREATED
 
         r = client.post(
-            f"/api/matches/{match.pk}/finish_match/{aq}",
+            f"/api/v1/matches/{match.pk}/finish_match/{aq}",
             {"winner_id": user_a.pk},
         )
         assert r.status_code == status.HTTP_200_OK
@@ -291,7 +291,7 @@ class TestTenantIsolation:
         TrainingClassFactory(academy=academy_b, title="B Class")
 
         r = _client(user).get(
-            f"/api/attendance/classes/?academy={academy_a.pk}"
+            f"/api/v1/attendance/classes/?academy={academy_a.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
         for item in r.data["results"]:
@@ -305,7 +305,7 @@ class TestTenantIsolation:
         AthleteProfileFactory(academy=academy_a)
         AthleteProfileFactory(academy=academy_b)
 
-        r = _client(user).get(f"/api/athletes/?academy={academy_a.pk}")
+        r = _client(user).get(f"/api/v1/athletes/?academy={academy_a.pk}")
         assert r.status_code == status.HTTP_200_OK
         for item in r.data["results"]:
             assert item["academy"] == academy_a.pk
@@ -319,7 +319,7 @@ class TestTenantIsolation:
         TimerPresetFactory(academy=academy_b)
 
         r = _client(user).get(
-            f"/api/tatami/timer-presets/?academy={academy_a.pk}"
+            f"/api/v1/tatami/timer-presets/?academy={academy_a.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
         for item in r.data["results"]:
@@ -341,7 +341,7 @@ class TestResponseContract:
         profile = AthleteProfileFactory(user=user, academy=academy)
 
         r = _client(user).get(
-            f"/api/athletes/{profile.pk}/?academy={academy.pk}"
+            f"/api/v1/athletes/{profile.pk}/?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
         for field in ("id", "username", "email", "belt", "stripes",
@@ -356,7 +356,7 @@ class TestResponseContract:
         tc = TrainingClassFactory(academy=academy)
 
         r = _client(user).get(
-            f"/api/attendance/classes/{tc.pk}/?academy={academy.pk}"
+            f"/api/v1/attendance/classes/{tc.pk}/?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
         for field in ("id", "title", "class_type", "scheduled_at",
@@ -370,7 +370,7 @@ class TestResponseContract:
         preset = TimerPresetFactory(academy=academy)
 
         r = _client(user).get(
-            f"/api/tatami/timer-presets/{preset.pk}/?academy={academy.pk}"
+            f"/api/v1/tatami/timer-presets/{preset.pk}/?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
         for field in ("id", "name", "format", "round_duration_seconds",
@@ -387,7 +387,7 @@ class TestResponseContract:
             athlete_b=UserFactory(),
         )
 
-        r = _client(user).get(f"/api/matches/{match.pk}/?academy={academy.pk}")
+        r = _client(user).get(f"/api/v1/matches/{match.pk}/?academy={academy.pk}")
         assert r.status_code == status.HTTP_200_OK
         for field in ("id", "is_finished", "score_a", "score_b",
                       "athlete_a", "athlete_b"):
@@ -401,7 +401,7 @@ class TestResponseContract:
         TrainingClassFactory(academy=academy)
 
         r = _client(user).get(
-            f"/api/attendance/classes/?academy={academy.pk}"
+            f"/api/v1/attendance/classes/?academy={academy.pk}"
         )
         assert r.status_code == status.HTTP_200_OK
         for key in ("count", "next", "previous", "results"):

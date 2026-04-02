@@ -127,7 +127,7 @@ class TestConcurrentMatHours:
         def checkin(idx, barrier):
             barrier.wait()
             r = clients[idx].post(
-                "/api/attendance/classes/qr_checkin/", {"token": tokens[idx]}
+                "/api/v1/attendance/classes/qr_checkin/", {"token": tokens[idx]}
             )
             return r.status_code
 
@@ -167,7 +167,7 @@ class TestConcurrentMatHours:
         def checkin(idx, barrier):
             barrier.wait()
             r = client.post(
-                "/api/attendance/classes/qr_checkin/", {"token": tokens[idx]}
+                "/api/v1/attendance/classes/qr_checkin/", {"token": tokens[idx]}
             )
             return r.status_code
 
@@ -213,7 +213,7 @@ class TestConcurrentDuplicateCheckIn:
         def checkin(idx, barrier):
             barrier.wait()
             r = client.post(
-                "/api/attendance/classes/qr_checkin/", {"token": tokens[idx]}
+                "/api/v1/attendance/classes/qr_checkin/", {"token": tokens[idx]}
             )
             return r.status_code
 
@@ -273,7 +273,7 @@ class TestConcurrentMatchScores:
             client = _client(prof)
             barrier.wait()
             r = client.post(
-                f"/api/matches/{match.pk}/add_event/{aq}",
+                f"/api/v1/matches/{match.pk}/add_event/{aq}",
                 {
                     "athlete": athlete.pk,
                     "event_type": "POINTS",
@@ -318,7 +318,7 @@ class TestConcurrentMatchScores:
             client = _client(prof)
             barrier.wait()
             r = client.post(
-                f"/api/matches/{match.pk}/add_event/{aq}",
+                f"/api/v1/matches/{match.pk}/add_event/{aq}",
                 {
                     "athlete": user_a.pk,
                     "event_type": "POINTS",
@@ -334,7 +334,7 @@ class TestConcurrentMatchScores:
             client = _client(prof)
             barrier.wait()
             r = client.post(
-                f"/api/matches/{match.pk}/finish_match/{aq}",
+                f"/api/v1/matches/{match.pk}/finish_match/{aq}",
                 {"winner_id": user_a.pk},
             )
             with lock:
@@ -399,7 +399,7 @@ class TestConcurrentTimerPause:
         def pause(idx, barrier):
             client = _client(user)
             barrier.wait()
-            r = client.post(f"/api/tatami/timer-sessions/{session.pk}/pause/{aq}")
+            r = client.post(f"/api/v1/tatami/timer-sessions/{session.pk}/pause/{aq}")
             return r.status_code
 
         results = _run_threads(pause, N)

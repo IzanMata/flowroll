@@ -74,7 +74,7 @@ class TestManualCheckinIDORPrevention:
         """A professor of Academy A cannot check in an athlete from Academy B."""
         academy_a, _, prof_user, athlete_b, tc_a = setup
         api_client.force_authenticate(user=prof_user)
-        url = f"/api/attendance/classes/manual_checkin/?academy={academy_a.pk}"
+        url = f"/api/v1/attendance/classes/manual_checkin/?academy={academy_a.pk}"
         response = api_client.post(
             url,
             {
@@ -96,7 +96,7 @@ class TestManualCheckinIDORPrevention:
         athlete_a = AthleteProfileFactory(academy=academy_a)
         tc_b = TrainingClassFactory(academy=academy_b)
         api_client.force_authenticate(user=prof_user)
-        url = f"/api/attendance/classes/manual_checkin/?academy={academy_a.pk}"
+        url = f"/api/v1/attendance/classes/manual_checkin/?academy={academy_a.pk}"
         response = api_client.post(
             url,
             {
@@ -118,7 +118,7 @@ class TestTrainingClassMembershipGuard:
         TrainingClassFactory(academy=academy)
         outsider = UserFactory()
         api_client.force_authenticate(user=outsider)
-        response = api_client.get(f"/api/attendance/classes/?academy={academy.pk}")
+        response = api_client.get(f"/api/v1/attendance/classes/?academy={academy.pk}")
         # IsAcademyMember blocks non-members before get_queryset — 403 not leaking data
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -129,7 +129,7 @@ class TestTrainingClassMembershipGuard:
         )
         TrainingClassFactory(academy=academy)
         api_client.force_authenticate(user=user)
-        response = api_client.get(f"/api/attendance/classes/?academy={academy.pk}")
+        response = api_client.get(f"/api/v1/attendance/classes/?academy={academy.pk}")
         assert response.status_code == status.HTTP_200_OK
         assert response.data["count"] >= 1
 
@@ -145,7 +145,7 @@ class TestDropInVisitorPermissions:
         )
         api_client.force_authenticate(user=student)
         response = api_client.post(
-            "/api/attendance/drop-ins/",
+            "/api/v1/attendance/drop-ins/",
             {
                 "academy": academy.pk,
                 "first_name": "Test",
@@ -168,7 +168,7 @@ class TestDropInVisitorPermissions:
         from datetime import timedelta
 
         response = api_client.post(
-            f"/api/attendance/drop-ins/?academy={academy.pk}",
+            f"/api/v1/attendance/drop-ins/?academy={academy.pk}",
             {
                 "academy": academy.pk,
                 "first_name": "Guest",
@@ -189,7 +189,7 @@ class TestQRExpiryClamping:
         self, db, professor_client, academy, professor_membership
     ):
         tc = TrainingClassFactory(academy=academy)
-        url = f"/api/attendance/classes/{tc.pk}/generate_qr/?academy={academy.pk}"
+        url = f"/api/v1/attendance/classes/{tc.pk}/generate_qr/?academy={academy.pk}"
         response = professor_client.post(url, {"expiry_minutes": 99999999})
         assert response.status_code == status.HTTP_200_OK
         # expires_at should be ≤ 1440 minutes from now (24 hours max)
@@ -203,7 +203,7 @@ class TestQRExpiryClamping:
         self, db, professor_client, academy, professor_membership
     ):
         tc = TrainingClassFactory(academy=academy)
-        url = f"/api/attendance/classes/{tc.pk}/generate_qr/?academy={academy.pk}"
+        url = f"/api/v1/attendance/classes/{tc.pk}/generate_qr/?academy={academy.pk}"
         response = professor_client.post(url, {"expiry_minutes": 0})
         assert response.status_code == status.HTTP_200_OK
         # Should not be in the past

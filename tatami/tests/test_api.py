@@ -37,10 +37,10 @@ from tatami.tests.factories import (
 
 # ── URL helpers ───────────────────────────────────────────────────────────────
 
-WC_LIST = "/api/tatami/weight-classes/"
-PRESET_LIST = "/api/tatami/timer-presets/"
-SESSION_LIST = "/api/tatami/timer-sessions/"
-MATCHUP_LIST = "/api/tatami/matchups/"
+WC_LIST = "/api/v1/tatami/weight-classes/"
+PRESET_LIST = "/api/v1/tatami/timer-presets/"
+SESSION_LIST = "/api/v1/tatami/timer-sessions/"
+MATCHUP_LIST = "/api/v1/tatami/matchups/"
 
 
 def wc_detail(pk):
