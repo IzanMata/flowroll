@@ -57,7 +57,8 @@
       "Bash(venv/bin/pytest academies/tests/test_api.py -v --tb=long)",
       "Bash(venv/bin/pytest athletes/tests/test_api.py::TestAthleteProfileMutations::test_superuser_can_update_any_profile athletes/tests/test_api.py::TestAthleteDestroyPermissions::test_superuser_can_delete_any_profile attendance/tests/test_security.py::TestQRExpiryClamping matches/tests/test_api.py::TestMatchQuerysetScoping::test_no_academy_param_returns_empty -v --tb=short)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(venv/bin/pytest attendance/tests/test_api.py::TestManualCheckIn::test_professor_can_manually_check_in_athlete attendance/tests/test_api.py::TestQRCheckIn::test_mat_hours_updated_after_checkin attendance/tests/test_api.py::TestDropInVisitorAPI::test_create_drop_in_visitor attendance/tests/test_security.py::TestTrainingClassMembershipGuard::test_non_member_cannot_see_classes -v --tb=short)"
+      "Bash(venv/bin/pytest attendance/tests/test_api.py::TestManualCheckIn::test_professor_can_manually_check_in_athlete attendance/tests/test_api.py::TestQRCheckIn::test_mat_hours_updated_after_checkin attendance/tests/test_api.py::TestDropInVisitorAPI::test_create_drop_in_visitor attendance/tests/test_security.py::TestTrainingClassMembershipGuard::test_non_member_cannot_see_classes -v --tb=short)",
+      "Bash(xargs sed -i 's|/api/academies/|/api/v1/academies/|g;:*)"
     ]
   }
 }
