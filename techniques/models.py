@@ -66,9 +66,6 @@ class Technique(AutoSlugMixin, TimestampMixin, models.Model):
         return self.name
 
 
-# TODO
-# Añadir un campo duration (segundos o minutos).
-# Campo tags o keywords para búsqueda avanzada.
 class TechniqueVideo(TimestampMixin, models.Model):
     technique = models.ForeignKey(
         Technique, on_delete=models.CASCADE, related_name="videos"
@@ -76,6 +73,16 @@ class TechniqueVideo(TimestampMixin, models.Model):
     title = models.CharField(max_length=200, blank=True)
     url = models.URLField(blank=True)
     source = models.CharField(max_length=100, default="YouTube")
+    duration_seconds = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Video duration in seconds.",
+    )
+    tags = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Comma-separated keywords for search (e.g. 'guard,sweep,gi').",
+    )
 
     class Meta:
         ordering = ["technique", "id"]
