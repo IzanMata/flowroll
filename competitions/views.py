@@ -77,6 +77,21 @@ class TournamentViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelView
         serializer.is_valid(raise_exception=True)
 
         athlete = get_object_or_404(AthleteProfile, pk=serializer.validated_data["athlete_id"])
+
+        # SEC: students may only register themselves; professors/owners may
+        # register any athlete in the academy.
+        from core.models import AcademyMembership
+        is_professor_or_owner = AcademyMembership.objects.filter(
+            user=request.user,
+            academy=tournament.academy,
+            role__in=[AcademyMembership.Role.PROFESSOR, AcademyMembership.Role.OWNER],
+            is_active=True,
+        ).exists()
+
+        if not is_professor_or_owner and athlete.user != request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Students may only register their own athlete profile.")
+
         division = None
         division_id = serializer.validated_data.get("division_id")
         if division_id:
@@ -143,15 +158,27 @@ class TournamentViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelView
 class TournamentMatchViewSet(viewsets.GenericViewSet):
     """
     Actions on individual tournament matches (record results).
+
+    All operations are scoped to the academy provided via ?academy=<id> so that
+    a professor at academy A cannot read or mutate matches belonging to academy B.
     """
 
     serializer_class = TournamentMatchSerializer
-    queryset = TournamentMatch.objects.select_related(
-        "athlete_a__user", "athlete_b__user", "winner__user", "division", "tournament"
-    )
 
     def get_permissions(self):
         return [IsAcademyProfessor()]
+
+    def get_queryset(self):
+        # SEC: always scope to the requesting academy — never expose matches
+        # from a foreign academy, even to authenticated professors.
+        academy_id = self.request.query_params.get("academy")
+        if not academy_id:
+            return TournamentMatch.objects.none()
+        return TournamentMatch.objects.filter(
+            tournament__academy_id=academy_id
+        ).select_related(
+            "athlete_a__user", "athlete_b__user", "winner__user", "division", "tournament"
+        )
 
     @extend_schema(
         request=RecordMatchResultSerializer,

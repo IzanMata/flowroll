@@ -21,6 +21,9 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
             "duration_days",
             "is_active",
         ]
+        # SEC: academy is set server-side from the URL param; is_active must be
+        # toggled through a dedicated admin action, not via free-form PATCH.
+        read_only_fields = ["academy", "is_active"]
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -46,7 +49,10 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             "classes_remaining",
             "created_at",
         ]
-        read_only_fields = ["created_at"]
+        # SEC: status and classes_remaining are managed by SubscriptionService
+        # (cancel, consume_class_pass, expire_stale). Direct writes would let
+        # a user self-reactivate a cancelled plan or inflate remaining classes.
+        read_only_fields = ["status", "classes_remaining", "end_date", "created_at"]
 
 
 class PromotionReadinessSerializer(serializers.Serializer):
@@ -112,6 +118,9 @@ class SeminarSerializer(serializers.ModelSerializer):
             "status",
             "spots_remaining",
         ]
+        # SEC: academy is set server-side from the view; status transitions
+        # (OPEN → FULL → CANCELLED) are driven by SeminarService, not free writes.
+        read_only_fields = ["academy", "status"]
 
 
 class EnrollmentSerializer(serializers.Serializer):

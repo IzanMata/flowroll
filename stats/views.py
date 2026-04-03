@@ -40,7 +40,9 @@ class AthleteStatsViewSet(SwaggerSafeMixin, viewsets.ReadOnlyModelViewSet):
     )
     @action(detail=False, methods=["get"], url_path="athlete/(?P<athlete_pk>[^/.]+)")
     def by_athlete(self, request, athlete_pk=None):
-        athlete = get_object_or_404(AthleteProfile, pk=athlete_pk)
+        # SEC: scope to the requested academy to prevent cross-tenant data leak
+        academy_id = request.query_params.get("academy")
+        athlete = get_object_or_404(AthleteProfile, pk=athlete_pk, academy_id=academy_id)
         stats = get_stats_for_athlete(athlete)
         if stats is None:
             return Response(
@@ -60,7 +62,10 @@ class AthleteStatsViewSet(SwaggerSafeMixin, viewsets.ReadOnlyModelViewSet):
         permission_classes=[IsAcademyProfessor],
     )
     def recompute(self, request, athlete_pk=None):
-        athlete = get_object_or_404(AthleteProfile, pk=athlete_pk)
+        # SEC: scope to the requested academy — a professor at academy A must not
+        # be able to trigger recomputes for athletes at academy B.
+        academy_id = request.query_params.get("academy")
+        athlete = get_object_or_404(AthleteProfile, pk=athlete_pk, academy_id=academy_id)
         stats = StatsService.recompute_for_athlete(athlete)
         return Response(AthleteMatchStatsSerializer(stats).data)
 

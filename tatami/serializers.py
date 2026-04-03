@@ -26,6 +26,8 @@ class TimerPresetSerializer(serializers.ModelSerializer):
             "overtime_seconds",
             "rounds",
         ]
+        # SEC: academy is set server-side; direct writes would allow cross-tenant assignment.
+        read_only_fields = ["academy"]
 
 
 class TimerSessionSerializer(serializers.ModelSerializer):
@@ -89,7 +91,11 @@ class MatchupSerializer(serializers.ModelSerializer):
             "winner_name",
             "created_at",
         ]
-        read_only_fields = ["created_at"]
+        # SEC: academy is set server-side from ?academy= query param.
+        # round_number, status, and winner are managed by MatchmakingService /
+        # service actions — allowing direct writes would let users self-declare
+        # wins or corrupt bracket state.
+        read_only_fields = ["academy", "round_number", "status", "winner", "created_at"]
 
 
 class PairAthletesSerializer(serializers.Serializer):
