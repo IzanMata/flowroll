@@ -17,4 +17,6 @@ urlpatterns = [
     path("membership/", include("membership.urls")),
     path("community/", include("community.urls")),
     path("learning/", include("learning.urls")),
+    path("competitions/", include("competitions.urls")),
+    path("stats/", include("stats.urls")),
 ]
