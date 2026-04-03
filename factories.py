@@ -430,3 +430,77 @@ class MatchEventFactory(DjangoModelFactory):
         "Knee on belly", "Sweep", "Reversal"
     ])
     event_type = "POINTS"
+
+
+# ===== COMPETITIONS APP FACTORIES =====
+
+
+class TournamentFactory(DjangoModelFactory):
+    class Meta:
+        model = "competitions.Tournament"
+
+    academy = factory.SubFactory(AcademyFactory)
+    name = factory.Sequence(lambda n: f"Tournament {n}")
+    description = factory.Faker("sentence")
+    date = factory.LazyFunction(lambda: date.today() + timedelta(days=30))
+    location = factory.Faker("city")
+    status = "DRAFT"
+    format = "BRACKET"
+    max_participants = None
+
+
+class TournamentDivisionFactory(DjangoModelFactory):
+    class Meta:
+        model = "competitions.TournamentDivision"
+
+    tournament = factory.SubFactory(TournamentFactory)
+    name = factory.Sequence(lambda n: f"Division {n}")
+    belt_min = "white"
+    belt_max = "blue"
+    weight_min = None
+    weight_max = None
+
+
+class TournamentParticipantFactory(DjangoModelFactory):
+    class Meta:
+        model = "competitions.TournamentParticipant"
+
+    tournament = factory.SubFactory(TournamentFactory)
+    division = None
+    athlete = factory.SubFactory(AthleteProfileFactory)
+    status = "CONFIRMED"
+    belt_at_registration = factory.LazyAttribute(lambda o: o.athlete.belt)
+    weight_at_registration = factory.LazyAttribute(lambda o: o.athlete.weight)
+    seed = None
+
+
+class TournamentMatchFactory(DjangoModelFactory):
+    class Meta:
+        model = "competitions.TournamentMatch"
+
+    tournament = factory.SubFactory(TournamentFactory)
+    division = None
+    round_number = 1
+    athlete_a = factory.SubFactory(AthleteProfileFactory)
+    athlete_b = factory.SubFactory(AthleteProfileFactory)
+    winner = None
+    score_a = 0
+    score_b = 0
+    is_finished = False
+
+
+# ===== STATS APP FACTORIES =====
+
+
+class AthleteMatchStatsFactory(DjangoModelFactory):
+    class Meta:
+        model = "stats.AthleteMatchStats"
+
+    athlete = factory.SubFactory(AthleteProfileFactory)
+    total_matches = factory.fuzzy.FuzzyInteger(0, 50)
+    wins = factory.fuzzy.FuzzyInteger(0, 30)
+    losses = factory.fuzzy.FuzzyInteger(0, 20)
+    draws = factory.fuzzy.FuzzyInteger(0, 5)
+    total_points_scored = factory.fuzzy.FuzzyInteger(0, 200)
+    total_points_conceded = factory.fuzzy.FuzzyInteger(0, 200)
+    submissions_won = factory.fuzzy.FuzzyInteger(0, 15)
