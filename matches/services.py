@@ -80,6 +80,19 @@ class MatchService:
 
         Match.objects.filter(pk=match.pk).update(is_finished=True, winner_id=winner_id)
         match.refresh_from_db()
+
+        # Recompute cached stats for both participants now that the match is finished.
+        # Local import avoids a circular dependency (stats.services imports matches.models).
+        from athletes.models import AthleteProfile
+        from stats.services import StatsService
+
+        for user_id in (match.athlete_a_id, match.athlete_b_id):
+            try:
+                athlete = AthleteProfile.objects.get(user_id=user_id)
+                StatsService.recompute_for_athlete(athlete)
+            except AthleteProfile.DoesNotExist:
+                pass
+
         return match
 
     @staticmethod
