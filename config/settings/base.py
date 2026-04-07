@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     # Local — placeholders
     "competitions",
     "stats",
+    # Payments
+    "payments",
 ]
 
 # L-2 fix: SecurityMiddleware MUST be first so HSTS / SSL redirect apply to
@@ -216,3 +218,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ─── Google OAuth ─────────────────────────────────────────────────────────────
 # Set GOOGLE_CLIENT_ID in your .env file (obtain from Google Cloud Console).
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+
+# ─── Stripe ───────────────────────────────────────────────────────────────────
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+# Pin the API version to avoid breaking changes on Stripe SDK upgrades.
+STRIPE_API_VERSION = "2024-06-20"

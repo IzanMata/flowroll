@@ -204,6 +204,8 @@ class MembershipPlanFactory(DjangoModelFactory):
     price = Decimal("99.99")
     duration_days = 30
     is_active = True
+    stripe_product_id = ""
+    stripe_price_id = ""
 
 
 class SubscriptionFactory(DjangoModelFactory):
@@ -214,6 +216,7 @@ class SubscriptionFactory(DjangoModelFactory):
     plan = factory.SubFactory(MembershipPlanFactory)
     start_date = factory.LazyFunction(date.today)
     status = "ACTIVE"
+    stripe_subscription_id = ""
 
 
 class PromotionRequirementFactory(DjangoModelFactory):
@@ -248,6 +251,7 @@ class SeminarRegistrationFactory(DjangoModelFactory):
     athlete = factory.SubFactory(AthleteProfileFactory)
     status = "CONFIRMED"
     payment_status = "PENDING"
+    stripe_payment_intent_id = ""
 
 
 class AchievementFactory(DjangoModelFactory):
@@ -370,6 +374,7 @@ class DojoTabTransactionFactory(DjangoModelFactory):
         "Payment received", "Refund", "Late fee"
     ])
     billed = False
+    stripe_payment_intent_id = ""
 
 
 class DojoTabBalanceFactory(DjangoModelFactory):
@@ -430,3 +435,15 @@ class MatchEventFactory(DjangoModelFactory):
         "Knee on belly", "Sweep", "Reversal"
     ])
     event_type = "POINTS"
+
+
+class StripeWebhookEventFactory(DjangoModelFactory):
+    class Meta:
+        model = "payments.StripeWebhookEvent"
+
+    stripe_event_id = factory.Sequence(lambda n: f"evt_test_{n:010d}")
+    event_type = "checkout.session.completed"
+    payload = factory.LazyFunction(
+        lambda: {"id": "evt_test", "type": "checkout.session.completed"}
+    )
+    processed = False
