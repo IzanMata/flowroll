@@ -154,7 +154,7 @@ class DropInVisitorFactory(DjangoModelFactory):
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
     email = factory.Faker("email")
-    phone = factory.Faker("phone_number")
+    phone = factory.Faker("numerify", text="+1##########")
     expires_at = factory.LazyFunction(lambda: timezone.now() + timedelta(hours=24))
     status = factory.fuzzy.FuzzyChoice(["PENDING", "ACTIVE", "EXPIRED"])
 
@@ -271,7 +271,7 @@ class OpenMatSessionFactory(DjangoModelFactory):
     end_time = factory.LazyAttribute(lambda o: f"{int(o.start_time[:2]) + 2}:00:00")  # 2 hours later
     max_capacity = factory.fuzzy.FuzzyInteger(15, 35)
     description = factory.Faker("sentence")
-    is_cancelled = factory.Faker("boolean", chance_of_getting_true=5)  # 5% chance
+    is_cancelled = False  # 5% chance
 
 
 class SparringNoteFactory(DjangoModelFactory):
