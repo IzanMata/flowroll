@@ -41,6 +41,10 @@ class AthleteProfileService:
 
         AthleteProfile.objects.filter(pk=athlete.pk).update(stripes=F("stripes") + 1)
         athlete.refresh_from_db()
+
+        from notifications.services import NotificationTriggers
+        NotificationTriggers.on_stripe_award(athlete, athlete.stripes)
+
         return athlete
 
     @staticmethod
@@ -85,6 +89,10 @@ class AthleteProfileService:
             belt=new_belt, stripes=0
         )
         athlete.refresh_from_db()
+
+        from notifications.services import NotificationTriggers
+        NotificationTriggers.on_belt_promotion(athlete, new_belt)
+
         return athlete
 
     @staticmethod

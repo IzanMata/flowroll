@@ -554,7 +554,7 @@ def _handle_invoice_payment_succeeded(invoice: dict) -> None:
     currency = invoice.get("currency", "eur")
     invoice_url = invoice.get("hosted_invoice_url", "") or invoice.get("invoice_pdf", "")
 
-    Payment.objects.get_or_create(
+    payment, created = Payment.objects.get_or_create(
         stripe_payment_intent_id=pi_id,
         defaults={
             "athlete": sub.athlete,
@@ -573,17 +573,36 @@ def _handle_invoice_payment_succeeded(invoice: dict) -> None:
             },
         },
     )
+    if created:
+        from notifications.services import NotificationTriggers
+        NotificationTriggers.on_payment_succeeded(payment)
 
 
 def _handle_invoice_payment_failed(invoice: dict) -> None:
     from membership.models import Subscription
 
     stripe_sub_id = invoice.get("subscription")
-    if stripe_sub_id:
-        Subscription.objects.filter(
-            stripe_subscription_id=stripe_sub_id,
-            status=Subscription.Status.ACTIVE,
-        ).update(status=Subscription.Status.PAUSED)
+    if not stripe_sub_id:
+        return
+
+    updated = Subscription.objects.filter(
+        stripe_subscription_id=stripe_sub_id,
+        status=Subscription.Status.ACTIVE,
+    ).update(status=Subscription.Status.PAUSED)
+
+    if updated:
+        try:
+            sub = Subscription.objects.select_related("athlete__user").get(
+                stripe_subscription_id=stripe_sub_id
+            )
+            from notifications.services import NotificationTriggers
+            NotificationTriggers.on_payment_failed(
+                athlete_user=sub.athlete.user,
+                amount_cents=invoice.get("amount_due", 0),
+                currency=invoice.get("currency", "eur"),
+            )
+        except Subscription.DoesNotExist:
+            pass
 
 
 def _handle_payment_intent_succeeded(pi: dict) -> None:
@@ -646,6 +665,9 @@ def _handle_payment_intent_succeeded(pi: dict) -> None:
                 payment_status=SeminarRegistration.PaymentStatus.PAID,
                 stripe_payment_intent_id=pi_id,
             )
+
+    from notifications.services import NotificationTriggers
+    NotificationTriggers.on_payment_succeeded(payment)
 
 
 def _handle_payment_intent_failed(pi: dict) -> None:

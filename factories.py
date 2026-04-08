@@ -404,6 +404,64 @@ class OpenMatRSVPFactory(DjangoModelFactory):
     status = factory.fuzzy.FuzzyChoice(["GOING", "NOT_GOING", "MAYBE"])
 
 
+# ===== COMPETITIONS APP FACTORIES =====
+
+
+class TournamentFactory(DjangoModelFactory):
+    class Meta:
+        model = "competitions.Tournament"
+
+    academy = factory.SubFactory(AcademyFactory)
+    name = factory.Sequence(lambda n: f"Tournament {n}")
+    date = factory.LazyFunction(lambda: date.today() + timedelta(days=30))
+    description = ""
+    location = factory.Faker("city")
+    status = "DRAFT"
+    format = "BRACKET"
+    max_participants = None
+
+
+class TournamentDivisionFactory(DjangoModelFactory):
+    class Meta:
+        model = "competitions.TournamentDivision"
+
+    tournament = factory.SubFactory(TournamentFactory)
+    name = factory.Sequence(lambda n: f"Division {n}")
+    belt_min = "white"
+    belt_max = "black"
+    weight_min = None
+    weight_max = None
+
+
+class TournamentParticipantFactory(DjangoModelFactory):
+    class Meta:
+        model = "competitions.TournamentParticipant"
+
+    tournament = factory.SubFactory(TournamentFactory)
+    athlete = factory.SubFactory(AthleteProfileFactory)
+    division = None
+    status = "CONFIRMED"
+    belt_at_registration = "white"
+    weight_at_registration = 70.0
+    seed = None
+
+
+class TournamentMatchFactory(DjangoModelFactory):
+    class Meta:
+        model = "competitions.TournamentMatch"
+
+    tournament = factory.SubFactory(TournamentFactory)
+    division = None
+    round_number = 1
+    athlete_a = factory.SubFactory(AthleteProfileFactory)
+    athlete_b = factory.SubFactory(AthleteProfileFactory)
+    winner = None
+    score_a = 0
+    score_b = 0
+    is_finished = False
+    notes = ""
+
+
 # ===== MATCHES APP FACTORIES (stub models) =====
 
 
