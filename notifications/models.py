@@ -25,6 +25,7 @@ class Notification(TimestampMixin, models.Model):
         CLASS_REMINDER = "CLASS_REMINDER", "Class Reminder"
         PAYMENT_SUCCEEDED = "PAYMENT_SUCCEEDED", "Payment Succeeded"
         PAYMENT_FAILED = "PAYMENT_FAILED", "Payment Failed"
+        PROMOTION_READY = "PROMOTION_READY", "Promotion Ready"
 
     recipient = models.ForeignKey(
         User,
