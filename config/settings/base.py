@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     "stats",
     # Payments
     "payments",
+    # Notifications
+    "notifications",
 ]
 
 # L-2 fix: SecurityMiddleware MUST be first so HSTS / SSL redirect apply to
