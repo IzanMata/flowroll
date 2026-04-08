@@ -4,8 +4,18 @@ from core.models import AcademyMembership
 
 
 def _resolve_academy_pk(view, request):
-    """Extract the academy PK from URL kwargs or query params."""
-    return view.kwargs.get("academy_pk") or request.query_params.get("academy")
+    """
+    Extract the academy PK from URL kwargs or query params.
+    Returns None when the value is present but not a valid integer so that
+    permission classes can deny access rather than raising a 500.
+    """
+    raw = view.kwargs.get("academy_pk") or request.query_params.get("academy")
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
 
 
 def get_academy_scoped_queryset(queryset, user, academy_pk):
