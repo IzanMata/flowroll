@@ -447,3 +447,34 @@ class StripeWebhookEventFactory(DjangoModelFactory):
         lambda: {"id": "evt_test", "type": "checkout.session.completed"}
     )
     processed = False
+
+
+class StripeAcademyConfigFactory(DjangoModelFactory):
+    class Meta:
+        model = "payments.StripeAcademyConfig"
+        django_get_or_create = ("academy",)
+
+    academy = factory.SubFactory(AcademyFactory)
+    stripe_connect_account_id = factory.Sequence(lambda n: f"acct_test_{n:010d}")
+    default_currency = "eur"
+    charges_enabled = True
+    payouts_enabled = True
+    details_submitted = True
+
+
+class PaymentFactory(DjangoModelFactory):
+    class Meta:
+        model = "payments.Payment"
+
+    academy = factory.SubFactory(AcademyFactory)
+    athlete = factory.SubFactory(AthleteProfileFactory)
+    payment_type = factory.fuzzy.FuzzyChoice(["SUBSCRIPTION", "SEMINAR", "ONE_TIME_PLAN"])
+    amount_paid = factory.fuzzy.FuzzyDecimal(20.00, 200.00, 2)
+    platform_fee = factory.LazyAttribute(lambda o: (o.amount_paid * Decimal("0.10")).quantize(Decimal("0.01")))
+    academy_net = factory.LazyAttribute(lambda o: o.amount_paid - o.platform_fee)
+    currency = "eur"
+    status = "SUCCEEDED"
+    stripe_payment_intent_id = factory.Sequence(lambda n: f"pi_test_{n:020d}")
+    stripe_charge_id = factory.Sequence(lambda n: f"ch_test_{n:020d}")
+    stripe_invoice_url = ""
+    extra_metadata = factory.LazyFunction(dict)

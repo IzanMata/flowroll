@@ -219,9 +219,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Set GOOGLE_CLIENT_ID in your .env file (obtain from Google Cloud Console).
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 
-# ─── Stripe ───────────────────────────────────────────────────────────────────
+# ─── Stripe Connect Express ───────────────────────────────────────────────────
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 # Pin the API version to avoid breaking changes on Stripe SDK upgrades.
 STRIPE_API_VERSION = "2024-06-20"
+# Marketplace commission: % of each payment kept by the platform.
+# e.g. 10.0 means FlowRoll keeps 10 % and the academy receives 90 % (minus Stripe fees).
+STRIPE_PLATFORM_FEE_PERCENT = float(os.environ.get("STRIPE_PLATFORM_FEE_PERCENT", "10.0"))

@@ -1,6 +1,21 @@
 from rest_framework import serializers
 
+from academies.models import Academy
 from membership.models import MembershipPlan, Seminar
+from payments.models import Payment
+
+
+class AcademyOnboardingRequestSerializer(serializers.Serializer):
+    academy_id = serializers.PrimaryKeyRelatedField(
+        queryset=Academy.objects.filter(is_active=True),
+        help_text="ID of the academy to connect to Stripe.",
+    )
+    refresh_url = serializers.URLField(
+        help_text="URL Stripe redirects to if the onboarding link expires."
+    )
+    return_url = serializers.URLField(
+        help_text="URL Stripe redirects to after the owner completes onboarding."
+    )
 
 
 class CheckoutSessionRequestSerializer(serializers.Serializer):
@@ -38,3 +53,41 @@ class PaymentMethodSerializer(serializers.Serializer):
     exp_month = serializers.IntegerField()
     exp_year = serializers.IntegerField()
     is_default = serializers.BooleanField()
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    """
+    Read-only serializer for Payment records.
+
+    Exposes Stripe invoice URL so the frontend can link directly to the
+    Stripe-hosted PDF without FlowRoll generating any invoice documents.
+    """
+
+    athlete_username = serializers.CharField(
+        source="athlete.user.username", read_only=True
+    )
+    payment_type_display = serializers.CharField(
+        source="get_payment_type_display", read_only=True
+    )
+    status_display = serializers.CharField(
+        source="get_status_display", read_only=True
+    )
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "payment_type",
+            "payment_type_display",
+            "amount_paid",
+            "platform_fee",
+            "academy_net",
+            "currency",
+            "status",
+            "status_display",
+            "athlete_username",
+            "stripe_payment_intent_id",
+            "stripe_invoice_url",
+            "created_at",
+        ]
+        read_only_fields = fields
