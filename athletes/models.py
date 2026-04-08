@@ -55,6 +55,8 @@ class AthleteProfile(models.Model):
         default=0.0,
         help_text="Cumulative mat hours derived from attendance check-ins.",
     )
+    # Stripe integration — Stripe Customer ID for billing
+    stripe_customer_id = models.CharField(max_length=100, blank=True, db_index=True)
 
     class Meta:
         indexes = [

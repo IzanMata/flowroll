@@ -154,7 +154,7 @@ class DropInVisitorFactory(DjangoModelFactory):
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
     email = factory.Faker("email")
-    phone = factory.Faker("phone_number")
+    phone = factory.Faker("numerify", text="+1##########")
     expires_at = factory.LazyFunction(lambda: timezone.now() + timedelta(hours=24))
     status = factory.fuzzy.FuzzyChoice(["PENDING", "ACTIVE", "EXPIRED"])
 
@@ -204,6 +204,8 @@ class MembershipPlanFactory(DjangoModelFactory):
     price = Decimal("99.99")
     duration_days = 30
     is_active = True
+    stripe_product_id = ""
+    stripe_price_id = ""
 
 
 class SubscriptionFactory(DjangoModelFactory):
@@ -214,6 +216,7 @@ class SubscriptionFactory(DjangoModelFactory):
     plan = factory.SubFactory(MembershipPlanFactory)
     start_date = factory.LazyFunction(date.today)
     status = "ACTIVE"
+    stripe_subscription_id = ""
 
 
 class PromotionRequirementFactory(DjangoModelFactory):
@@ -248,6 +251,7 @@ class SeminarRegistrationFactory(DjangoModelFactory):
     athlete = factory.SubFactory(AthleteProfileFactory)
     status = "CONFIRMED"
     payment_status = "PENDING"
+    stripe_payment_intent_id = ""
 
 
 class AchievementFactory(DjangoModelFactory):
@@ -271,7 +275,7 @@ class OpenMatSessionFactory(DjangoModelFactory):
     end_time = factory.LazyAttribute(lambda o: f"{int(o.start_time[:2]) + 2}:00:00")  # 2 hours later
     max_capacity = factory.fuzzy.FuzzyInteger(15, 35)
     description = factory.Faker("sentence")
-    is_cancelled = factory.Faker("boolean", chance_of_getting_true=5)  # 5% chance
+    is_cancelled = False  # 5% chance
 
 
 class SparringNoteFactory(DjangoModelFactory):
@@ -370,6 +374,7 @@ class DojoTabTransactionFactory(DjangoModelFactory):
         "Payment received", "Refund", "Late fee"
     ])
     billed = False
+    stripe_payment_intent_id = ""
 
 
 class DojoTabBalanceFactory(DjangoModelFactory):
@@ -430,3 +435,46 @@ class MatchEventFactory(DjangoModelFactory):
         "Knee on belly", "Sweep", "Reversal"
     ])
     event_type = "POINTS"
+
+
+class StripeWebhookEventFactory(DjangoModelFactory):
+    class Meta:
+        model = "payments.StripeWebhookEvent"
+
+    stripe_event_id = factory.Sequence(lambda n: f"evt_test_{n:010d}")
+    event_type = "checkout.session.completed"
+    payload = factory.LazyFunction(
+        lambda: {"id": "evt_test", "type": "checkout.session.completed"}
+    )
+    processed = False
+
+
+class StripeAcademyConfigFactory(DjangoModelFactory):
+    class Meta:
+        model = "payments.StripeAcademyConfig"
+        django_get_or_create = ("academy",)
+
+    academy = factory.SubFactory(AcademyFactory)
+    stripe_connect_account_id = factory.Sequence(lambda n: f"acct_test_{n:010d}")
+    default_currency = "eur"
+    charges_enabled = True
+    payouts_enabled = True
+    details_submitted = True
+
+
+class PaymentFactory(DjangoModelFactory):
+    class Meta:
+        model = "payments.Payment"
+
+    academy = factory.SubFactory(AcademyFactory)
+    athlete = factory.SubFactory(AthleteProfileFactory)
+    payment_type = factory.fuzzy.FuzzyChoice(["SUBSCRIPTION", "SEMINAR", "ONE_TIME_PLAN"])
+    amount_paid = factory.fuzzy.FuzzyDecimal(20.00, 200.00, 2)
+    platform_fee = factory.LazyAttribute(lambda o: (o.amount_paid * Decimal("0.10")).quantize(Decimal("0.01")))
+    academy_net = factory.LazyAttribute(lambda o: o.amount_paid - o.platform_fee)
+    currency = "eur"
+    status = "SUCCEEDED"
+    stripe_payment_intent_id = factory.Sequence(lambda n: f"pi_test_{n:020d}")
+    stripe_charge_id = factory.Sequence(lambda n: f"ch_test_{n:020d}")
+    stripe_invoice_url = ""
+    extra_metadata = factory.LazyFunction(dict)
