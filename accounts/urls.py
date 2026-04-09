@@ -1,8 +1,10 @@
 from django.urls import path
 
-from .views import (ChangePasswordView, GoogleAuthView, LogoutView,
+from .views import (AppleAuthView, ChangePasswordView, GoogleAuthView,
+                    LogoutView, MagicLinkRequestView, MagicLinkVerifyView,
                     PasswordResetConfirmView, PasswordResetRequestView,
-                    RegisterView, ResendVerificationView, VerifyEmailView)
+                    PhoneOTPRequestView, PhoneOTPVerifyView, RegisterView,
+                    ResendVerificationView, VerifyEmailView)
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="auth_register"),
@@ -12,5 +14,13 @@ urlpatterns = [
     path("verify-email/", VerifyEmailView.as_view(), name="auth_verify_email"),
     path("resend-verification/", ResendVerificationView.as_view(), name="auth_resend_verification"),
     path("change-password/", ChangePasswordView.as_view(), name="auth_change_password"),
+    # Social auth
     path("social/google/", GoogleAuthView.as_view(), name="auth_google"),
+    path("social/apple/", AppleAuthView.as_view(), name="auth_apple"),
+    # Passwordless
+    path("magic-link/", MagicLinkRequestView.as_view(), name="auth_magic_link_request"),
+    path("magic-link/verify/", MagicLinkVerifyView.as_view(), name="auth_magic_link_verify"),
+    # Phone OTP
+    path("phone/otp/", PhoneOTPRequestView.as_view(), name="auth_phone_otp_request"),
+    path("phone/otp/verify/", PhoneOTPVerifyView.as_view(), name="auth_phone_otp_verify"),
 ]

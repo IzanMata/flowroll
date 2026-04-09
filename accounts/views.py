@@ -1,18 +1,28 @@
+import time
+
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from config.throttles import LoginRateThrottle, PasswordResetRateThrottle
+from config.throttles import (ChangePasswordRateThrottle,
+                              EmailVerificationRateThrottle, LoginRateThrottle,
+                              MagicLinkRateThrottle, PasswordResetRateThrottle,
+                              PhoneOTPRateThrottle)
 
-from .serializers import (ChangePasswordSerializer, EmailVerifySerializer,
-                           GoogleAuthSerializer, PasswordResetConfirmSerializer,
-                           PasswordResetRequestSerializer, RegisterSerializer,
+from .serializers import (AppleAuthSerializer, ChangePasswordSerializer,
+                           EmailVerifySerializer, GoogleAuthSerializer,
+                           MagicLinkRequestSerializer, MagicLinkVerifySerializer,
+                           PasswordResetConfirmSerializer,
+                           PasswordResetRequestSerializer, PhoneOTPRequestSerializer,
+                           PhoneOTPVerifySerializer, RegisterSerializer,
                            ResendVerificationSerializer)
-from .services import (EmailVerificationService, PasswordResetService,
-                       RegistrationService)
+from .services import (AppleAuthService, EmailVerificationService,
+                       MagicLinkService, PasswordResetService,
+                       PhoneOTPService, RegistrationService)
 
 
 def _tokens_for_user(user) -> dict:
@@ -43,6 +53,17 @@ class LogoutView(APIView):
             RefreshToken(refresh_token).blacklist()
         except TokenError:
             return Response({"detail": "Invalid or already blacklisted token."}, status=400)
+
+        # Also revoke the current access token via Redis JTI blocklist so it
+        # cannot be used for the remainder of its lifetime after logout.
+        if request.auth:
+            jti = request.auth.get("jti")
+            exp = request.auth.get("exp")
+            if jti and exp:
+                remaining = int(exp) - int(time.time())
+                if remaining > 0:
+                    cache.set(f"revoked_jti:{jti}", "1", timeout=remaining)
+
         return Response(status=204)
 
 
@@ -54,6 +75,7 @@ class VerifyEmailView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [EmailVerificationRateThrottle]
 
     def post(self, request):
         serializer = EmailVerifySerializer(data=request.data)
@@ -103,6 +125,7 @@ class ChangePasswordView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ChangePasswordRateThrottle]
 
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
@@ -210,6 +233,122 @@ class GoogleAuthView(APIView):
             user = RegistrationService.register_or_login_with_google(
                 serializer.validated_data["token"]
             )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response(_tokens_for_user(user), status=200)
+
+
+class AppleAuthView(APIView):
+    """
+    Sign in or register using a Sign in with Apple identity_token.
+
+    The client must obtain the identity_token via the Apple Sign-In SDK and
+    send it here.  Returns JWT access and refresh tokens on success.
+
+    POST body: {"token": "<apple_identity_token>"}
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
+
+    def post(self, request):
+        serializer = AppleAuthSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = AppleAuthService.register_or_login_with_apple(
+                serializer.validated_data["token"]
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response(_tokens_for_user(user), status=200)
+
+
+class MagicLinkRequestView(APIView):
+    """
+    Request a magic-link login email.
+
+    Always returns 200 regardless of whether the address is registered to
+    avoid leaking account existence.
+
+    POST body: {"email": "user@example.com"}
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [MagicLinkRateThrottle]
+
+    def post(self, request):
+        serializer = MagicLinkRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        MagicLinkService.request_link(serializer.validated_data["email"])
+        return Response(
+            {"detail": "If that email is registered you will receive a login link shortly."},
+            status=200,
+        )
+
+
+class MagicLinkVerifyView(APIView):
+    """
+    Exchange a magic-link token for JWT access and refresh tokens.
+
+    Tokens are single-use and expire after 15 minutes.
+
+    POST body: {"token": "<magic_link_token>"}
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [EmailVerificationRateThrottle]
+
+    def post(self, request):
+        serializer = MagicLinkVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = MagicLinkService.verify_link(serializer.validated_data["token"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response(_tokens_for_user(user), status=200)
+
+
+class PhoneOTPRequestView(APIView):
+    """
+    Request a 6-digit OTP via SMS to the given phone number.
+
+    Always returns 200 to avoid leaking whether the number is registered.
+
+    POST body: {"phone": "+34612345678"}
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [PhoneOTPRateThrottle]
+
+    def post(self, request):
+        serializer = PhoneOTPRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            PhoneOTPService.send_otp(serializer.validated_data["phone"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response(
+            {"detail": "If that phone number is valid, an OTP has been sent."},
+            status=200,
+        )
+
+
+class PhoneOTPVerifyView(APIView):
+    """
+    Verify the OTP received via SMS and obtain JWT tokens.
+
+    POST body: {"phone": "+34612345678", "otp": "123456"}
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [PhoneOTPRateThrottle]
+
+    def post(self, request):
+        serializer = PhoneOTPVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            user = PhoneOTPService.verify_otp(data["phone"], data["otp"])
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
         return Response(_tokens_for_user(user), status=200)

@@ -6,6 +6,8 @@ django-filter==24.3
 django-cors-headers==4.9.0
 django-allauth==65.12.1
 google-auth==2.38.0
+twilio==9.4.3
+phonenumbers==8.13.53
 requests==2.32.3
 drf-spectacular==0.28.0
 python-dotenv==1.1.1

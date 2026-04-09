@@ -72,3 +72,28 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
                 {"new_password_confirm": "Passwords do not match."}
             )
         return attrs
+
+
+class AppleAuthSerializer(serializers.Serializer):
+    token = serializers.CharField(
+        help_text="Sign in with Apple identity_token obtained on the client side."
+    )
+
+
+class MagicLinkRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class MagicLinkVerifySerializer(serializers.Serializer):
+    token = serializers.CharField()
+
+
+class PhoneOTPRequestSerializer(serializers.Serializer):
+    phone = serializers.CharField(
+        help_text="Phone number in E.164 format or local format with country code, e.g. +34612345678"
+    )
+
+
+class PhoneOTPVerifySerializer(serializers.Serializer):
+    phone = serializers.CharField()
+    otp = serializers.CharField(min_length=6, max_length=6)
