@@ -55,6 +55,11 @@ class AthleteProfile(models.Model):
         default=0.0,
         help_text="Cumulative mat hours derived from attendance check-ins.",
     )
+    belt_awarded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the athlete received their current belt. Used to compute months_at_belt for promotion eligibility.",
+    )
     # Stripe integration — Stripe Customer ID for billing
     stripe_customer_id = models.CharField(max_length=100, blank=True, db_index=True)
 

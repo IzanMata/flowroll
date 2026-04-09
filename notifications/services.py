@@ -208,6 +208,27 @@ class NotificationTriggers:
         )
 
     @staticmethod
+    def on_promotion_ready(athlete) -> Notification:
+        """
+        Notify an athlete that they meet all criteria for their next belt promotion.
+        Called when the 4th stripe is awarded and all requirements are satisfied.
+        """
+        from athletes.services import PromotionService
+
+        next_belt = PromotionService.BELT_PROGRESSION.get(athlete.belt, "")
+        belt_display = (next_belt or "").capitalize()
+        return NotificationService.create(
+            recipient=athlete.user,
+            notification_type=Notification.NotificationType.PROMOTION_READY,
+            title=f"🥋 Ready for {belt_display} Belt!",
+            body=(
+                f"You've met all requirements for {belt_display} belt promotion. "
+                "Speak to your professor!"
+            ),
+            extra_data={"current_belt": athlete.belt, "next_belt": next_belt, "athlete_id": athlete.pk},
+        )
+
+    @staticmethod
     def on_class_reminder(recipient: User, training_class) -> Optional[Notification]:
         """
         Send a class reminder to a single recipient, deduplicating by class id.
