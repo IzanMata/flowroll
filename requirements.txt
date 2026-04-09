@@ -8,6 +8,7 @@ django-allauth==65.12.1
 google-auth==2.38.0
 twilio==9.4.3
 phonenumbers==8.13.53
+pyotp==2.9.0
 requests==2.32.3
 drf-spectacular==0.28.0
 python-dotenv==1.1.1

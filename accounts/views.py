@@ -14,20 +14,41 @@ from config.throttles import (ChangePasswordRateThrottle,
                               PhoneOTPRateThrottle)
 
 from .serializers import (AppleAuthSerializer, ChangePasswordSerializer,
-                           EmailVerifySerializer, GoogleAuthSerializer,
+                           CompleteProfileSerializer, EmailChangeConfirmSerializer,
+                           EmailChangeRequestSerializer, EmailVerifySerializer,
+                           GoogleAuthSerializer, LinkAppleSerializer,
+                           LinkGoogleSerializer, LinkPhoneVerifySerializer,
                            MagicLinkRequestSerializer, MagicLinkVerifySerializer,
                            PasswordResetConfirmSerializer,
                            PasswordResetRequestSerializer, PhoneOTPRequestSerializer,
                            PhoneOTPVerifySerializer, RegisterSerializer,
-                           ResendVerificationSerializer)
-from .services import (AppleAuthService, EmailVerificationService,
-                       MagicLinkService, PasswordResetService,
-                       PhoneOTPService, RegistrationService)
+                           ResendVerificationSerializer, TwoFactorChallengeSerializer,
+                           TwoFactorConfirmSerializer, TwoFactorDisableSerializer,
+                           UnlinkProviderSerializer, UserSessionSerializer)
+from .services import (AccountLinkingService, AppleAuthService,
+                       EmailChangeService, EmailVerificationService,
+                       LoginEventService, MagicLinkService,
+                       PasswordResetService, PhoneOTPService,
+                       ProfileCompletionService, RegistrationService,
+                       SessionService, TwoFactorService)
 
 
-def _tokens_for_user(user) -> dict:
-    """Return a dict with access and refresh JWT tokens for the given user."""
+def _tokens_for_user(user, request=None, login_method: str = "email") -> dict:
+    """
+    Issue JWT token pair, create a UserSession, and log the login event.
+    When *request* is None (e.g. tests), session creation and logging are skipped.
+    """
     refresh = RefreshToken.for_user(user)
+
+    if request is not None:
+        session = SessionService.create(
+            user=user, jti=str(refresh["jti"]), request=request, login_method=login_method
+        )
+        # Embed session PK in both tokens so /sessions/ can detect the current one
+        refresh["session_id"] = session.pk
+        refresh.access_token["session_id"] = session.pk
+        LoginEventService.log(user=user, method=login_method, request=request, success=True)
+
     return {
         "access": str(refresh.access_token),
         "refresh": str(refresh),
@@ -54,8 +75,7 @@ class LogoutView(APIView):
         except TokenError:
             return Response({"detail": "Invalid or already blacklisted token."}, status=400)
 
-        # Also revoke the current access token via Redis JTI blocklist so it
-        # cannot be used for the remainder of its lifetime after logout.
+        # Revoke the access token via Redis JTI blocklist
         if request.auth:
             jti = request.auth.get("jti")
             exp = request.auth.get("exp")
@@ -63,6 +83,16 @@ class LogoutView(APIView):
                 remaining = int(exp) - int(time.time())
                 if remaining > 0:
                     cache.set(f"revoked_jti:{jti}", "1", timeout=remaining)
+
+        # Deactivate the session record (identified by the refresh token JTI)
+        try:
+            import jwt as pyjwt
+            claims = pyjwt.decode(refresh_token, options={"verify_signature": False})
+            refresh_jti = claims.get("jti")
+            if refresh_jti:
+                SessionService.deactivate(refresh_jti)
+        except Exception:
+            pass
 
         return Response(status=204)
 
@@ -212,7 +242,7 @@ class RegisterView(APIView):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user), status=201)
+        return Response(_tokens_for_user(user, request, "email"), status=201)
 
 
 class GoogleAuthView(APIView):
@@ -235,7 +265,7 @@ class GoogleAuthView(APIView):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user), status=200)
+        return Response(_tokens_for_user(user, request, "google"), status=200)
 
 
 class AppleAuthView(APIView):
@@ -260,7 +290,7 @@ class AppleAuthView(APIView):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user), status=200)
+        return Response(_tokens_for_user(user, request, "apple"), status=200)
 
 
 class MagicLinkRequestView(APIView):
@@ -305,7 +335,7 @@ class MagicLinkVerifyView(APIView):
             user = MagicLinkService.verify_link(serializer.validated_data["token"])
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user), status=200)
+        return Response(_tokens_for_user(user, request, "magic_link"), status=200)
 
 
 class PhoneOTPRequestView(APIView):
@@ -351,4 +381,340 @@ class PhoneOTPVerifyView(APIView):
             user = PhoneOTPService.verify_otp(data["phone"], data["otp"])
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user), status=200)
+        return Response(_tokens_for_user(user, request, "phone"), status=200)
+
+
+# ─── Two-Factor Authentication ────────────────────────────────────────────────
+
+
+class TwoFactorSetupView(APIView):
+    """
+    Begin 2FA setup: generate a TOTP secret and provisioning URI for QR scanning.
+
+    The device is not active until /2fa/confirm/ is called.
+    GET (no body required).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        data = TwoFactorService.setup(request.user)
+        return Response(data, status=200)
+
+
+class TwoFactorConfirmView(APIView):
+    """
+    Activate 2FA by verifying the first TOTP code.
+    Returns plaintext recovery codes (shown once — store them securely).
+
+    POST body: {"code": "123456"}
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = TwoFactorConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            codes = TwoFactorService.confirm(request.user, serializer.validated_data["code"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"recovery_codes": codes}, status=200)
+
+
+class TwoFactorChallengeView(APIView):
+    """
+    Complete login for a 2FA-enabled account.
+
+    POST body: {"partial_token": "...", "code": "123456"}  (TOTP or recovery code)
+    Returns JWT access + refresh tokens on success.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
+
+    def post(self, request):
+        serializer = TwoFactorChallengeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            user = TwoFactorService.challenge(data["partial_token"], data["code"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response(_tokens_for_user(user, request, "totp"), status=200)
+
+
+class TwoFactorDisableView(APIView):
+    """
+    Disable 2FA after verifying the current TOTP code or a recovery code.
+
+    POST body: {"code": "123456"}
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = TwoFactorDisableSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            TwoFactorService.disable(request.user, serializer.validated_data["code"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"detail": "Two-factor authentication has been disabled."}, status=200)
+
+
+class TwoFactorRegenerateCodesView(APIView):
+    """
+    Regenerate recovery codes (old codes are invalidated).
+    Requires current TOTP code for confirmation.
+
+    POST body: {"code": "123456"}
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = TwoFactorConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            codes = TwoFactorService.regenerate_codes(request.user, serializer.validated_data["code"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"recovery_codes": codes}, status=200)
+
+
+# ─── Session management ───────────────────────────────────────────────────────
+
+
+class SessionListView(APIView):
+    """
+    List all active sessions for the authenticated user.
+
+    GET — returns sessions with is_current=True on the calling session.
+    DELETE — revoke all sessions except the current one.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .models import UserSession
+
+        current_session_id = request.auth.get("session_id") if request.auth else None
+        sessions = UserSession.objects.filter(user=request.user, is_active=True)
+        data = UserSessionSerializer(
+            [
+                {
+                    "id": s.pk,
+                    "device_name": s.device_name,
+                    "ip_address": s.ip_address,
+                    "login_method": s.login_method,
+                    "created_at": s.created_at,
+                    "last_seen_at": s.last_seen_at,
+                    "is_current": s.pk == current_session_id,
+                }
+                for s in sessions
+            ],
+            many=True,
+        )
+        return Response(data.data)
+
+    def delete(self, request):
+        current_jti = str(request.auth["jti"]) if request.auth else None
+        revoked = SessionService.revoke_all(request.user, except_jti=current_jti)
+        return Response({"revoked": revoked}, status=200)
+
+
+class SessionDetailView(APIView):
+    """
+    Revoke a specific session by ID.
+
+    DELETE /api/auth/sessions/{id}/
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, session_id: int):
+        current_jti = str(request.auth["jti"]) if request.auth else None
+        try:
+            SessionService.revoke(request.user, session_id, current_jti=current_jti)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response(status=204)
+
+
+# ─── Account connections ──────────────────────────────────────────────────────
+
+
+class ConnectionsView(APIView):
+    """
+    GET  — list all linked auth providers.
+    DELETE — unlink a provider: body {"provider": "google"|"apple"|"phone"}
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(AccountLinkingService.list_connections(request.user))
+
+    def delete(self, request):
+        serializer = UnlinkProviderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            AccountLinkingService.unlink(request.user, serializer.validated_data["provider"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"detail": "Provider unlinked successfully."}, status=200)
+
+
+class LinkGoogleView(APIView):
+    """Link a Google account to the authenticated user. POST body: {"token": "..."}"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = LinkGoogleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            AccountLinkingService.link_google(request.user, serializer.validated_data["token"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"detail": "Google account linked successfully."}, status=200)
+
+
+class LinkAppleView(APIView):
+    """Link an Apple account to the authenticated user. POST body: {"token": "..."}"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = LinkAppleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            AccountLinkingService.link_apple(request.user, serializer.validated_data["token"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"detail": "Apple account linked successfully."}, status=200)
+
+
+class LinkPhoneVerifyView(APIView):
+    """
+    Verify the OTP and link the phone number.
+    The OTP must have been requested first via POST /api/auth/phone/otp/.
+
+    POST body: {"phone": "+34612345678", "otp": "123456"}
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [PhoneOTPRateThrottle]
+
+    def post(self, request):
+        serializer = LinkPhoneVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            AccountLinkingService.link_phone_verify(request.user, data["phone"], data["otp"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"detail": "Phone number linked successfully."}, status=200)
+
+
+# ─── Email change ─────────────────────────────────────────────────────────────
+
+
+class EmailChangeRequestView(APIView):
+    """
+    Request an email address change.
+    Sends a confirmation token to the *new* address and a security notice to the old one.
+
+    POST body: {"new_email": "new@example.com"}
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [PasswordResetRateThrottle]
+
+    def post(self, request):
+        serializer = EmailChangeRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            EmailChangeService.request_change(request.user, serializer.validated_data["new_email"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response(
+            {"detail": "A confirmation email has been sent to your new address."},
+            status=200,
+        )
+
+
+class EmailChangeConfirmView(APIView):
+    """
+    Confirm the email change using the token from the confirmation email.
+
+    POST body: {"token": "..."}
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [EmailVerificationRateThrottle]
+
+    def post(self, request):
+        serializer = EmailChangeConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            EmailChangeService.confirm_change(serializer.validated_data["token"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"detail": "Email address updated successfully."}, status=200)
+
+
+# ─── Login history ────────────────────────────────────────────────────────────
+
+
+class LoginHistoryView(APIView):
+    """
+    Return the last 50 authentication events for the authenticated user.
+
+    GET /api/auth/login-history/
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .models import LoginEvent
+
+        events = LoginEvent.objects.filter(user=request.user).values(
+            "id", "method", "ip_address", "user_agent", "success", "created_at"
+        )[:50]
+        return Response(list(events))
+
+
+# ─── Profile completion ───────────────────────────────────────────────────────
+
+
+class CompleteProfileView(APIView):
+    """
+    Allow users who signed up via a social provider with missing data to
+    fill in their profile (email, first_name, last_name).
+
+    PATCH /api/auth/complete-profile/
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        serializer = CompleteProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            user = ProfileCompletionService.complete(
+                request.user,
+                email=data.get("email", ""),
+                first_name=data.get("first_name", ""),
+                last_name=data.get("last_name", ""),
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        }, status=200)

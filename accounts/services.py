@@ -594,3 +594,707 @@ class PhoneOTPService:
             user = User.objects.create_user(username=username, email="")
             UserPhoneNumber.objects.create(user=user, phone=e164, is_verified=True)
             return user
+
+
+# ─── Session management ───────────────────────────────────────────────────────
+
+def _parse_device_name(user_agent: str) -> str:
+    """Return a human-readable device string from a User-Agent header."""
+    ua = user_agent.lower()
+    if "iphone" in ua:
+        device = "iPhone"
+    elif "ipad" in ua:
+        device = "iPad"
+    elif "android" in ua:
+        device = "Android"
+    elif "macintosh" in ua or "mac os" in ua:
+        device = "Mac"
+    elif "windows" in ua:
+        device = "Windows"
+    elif "linux" in ua:
+        device = "Linux"
+    else:
+        device = "Unknown device"
+
+    if "chrome" in ua and "edg" not in ua and "opr" not in ua:
+        browser = "Chrome"
+    elif "firefox" in ua:
+        browser = "Firefox"
+    elif "safari" in ua and "chrome" not in ua:
+        browser = "Safari"
+    elif "edg" in ua:
+        browser = "Edge"
+    else:
+        browser = ""
+
+    return f"{browser} on {device}".strip(" on") if browser else device
+
+
+class SessionService:
+    """Create and manage user sessions tied to refresh token JTIs."""
+
+    @staticmethod
+    def create(user: User, jti: str, request, login_method: str = "email"):
+        """Create a new UserSession and return it."""
+        from .models import UserSession
+
+        ua = request.META.get("HTTP_USER_AGENT", "") if request else ""
+        ip = (
+            request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+            or request.META.get("REMOTE_ADDR")
+        ) if request else None
+
+        session = UserSession.objects.create(
+            user=user,
+            jti=jti,
+            device_name=_parse_device_name(ua),
+            ip_address=ip or None,
+            login_method=login_method,
+        )
+        # Store own PK so we can emit it in JWT claims
+        session.session_id = session.pk
+        session.save(update_fields=["session_id"])
+        return session
+
+    @staticmethod
+    def rotate_jti(old_jti: str, new_jti: str) -> None:
+        """Update a session's JTI after token rotation and refresh last_seen_at."""
+        from django.utils import timezone
+        from .models import UserSession
+
+        UserSession.objects.filter(jti=old_jti, is_active=True).update(
+            jti=new_jti,
+            last_seen_at=timezone.now(),
+        )
+
+    @staticmethod
+    def deactivate(jti: str) -> None:
+        """Deactivate the session associated with *jti* (called on logout)."""
+        from .models import UserSession
+
+        UserSession.objects.filter(jti=jti).update(is_active=False)
+
+    @staticmethod
+    def revoke(user: User, session_pk: int, current_jti: str | None = None) -> None:
+        """
+        Revoke a specific session: blacklist its refresh token and deactivate it.
+        Raises ValueError if the session does not belong to the user.
+        """
+        from .models import UserSession
+
+        try:
+            session = UserSession.objects.get(pk=session_pk, user=user, is_active=True)
+        except UserSession.DoesNotExist:
+            raise ValueError("Session not found.")
+
+        if current_jti and session.jti == current_jti:
+            raise ValueError("Cannot revoke the current session via this endpoint. Use /logout/ instead.")
+
+        SessionService._blacklist_jti(session.jti)
+        session.is_active = False
+        session.save(update_fields=["is_active"])
+
+    @staticmethod
+    def revoke_all(user: User, except_jti: str | None = None) -> int:
+        """
+        Blacklist and deactivate all sessions for *user* except the one with
+        *except_jti* (typically the current session).  Returns the count revoked.
+        """
+        from .models import UserSession
+
+        qs = UserSession.objects.filter(user=user, is_active=True)
+        if except_jti:
+            qs = qs.exclude(jti=except_jti)
+
+        revoked = 0
+        for session in qs:
+            SessionService._blacklist_jti(session.jti)
+            revoked += 1
+
+        qs.update(is_active=False)
+        return revoked
+
+    @staticmethod
+    def _blacklist_jti(jti: str) -> None:
+        """Blacklist the OutstandingToken with this JTI if it exists."""
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import (
+                BlacklistedToken, OutstandingToken,
+            )
+            outstanding = OutstandingToken.objects.filter(jti=jti).first()
+            if outstanding:
+                BlacklistedToken.objects.get_or_create(token=outstanding)
+        except Exception:
+            pass  # token_blacklist app may not have the token yet
+
+
+# ─── Login event logging ──────────────────────────────────────────────────────
+
+class LoginEventService:
+    """Log authentication events for the login history audit trail."""
+
+    @staticmethod
+    def log(user: User | None, method: str, request, success: bool = True) -> None:
+        from .models import LoginEvent
+
+        ua = request.META.get("HTTP_USER_AGENT", "") if request else ""
+        ip = (
+            request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+            or request.META.get("REMOTE_ADDR")
+        ) if request else None
+
+        LoginEvent.objects.create(
+            user=user,
+            method=method,
+            ip_address=ip or None,
+            user_agent=ua,
+            success=success,
+        )
+
+
+# ─── Two-Factor Authentication (TOTP) ────────────────────────────────────────
+
+RECOVERY_CODE_COUNT = 8  # codes generated per 2FA setup or regeneration
+
+
+class TwoFactorService:
+    """
+    TOTP-based two-factor authentication using RFC 6238 (30-second window).
+
+    Setup flow:
+      1. setup(user)    → returns {secret, provisioning_uri, qr_url} — device inactive
+      2. confirm(user, code) → activates device + returns plaintext recovery codes
+
+    Login flow (when 2FA is active):
+      1. Credentials validated → issue partial_token (Redis, 5 min TTL)
+      2. challenge(partial_token, code) → validates TOTP or recovery code → returns user
+
+    Management:
+      - disable(user, code)
+      - regenerate_codes(user, code) → new recovery codes (old ones invalidated)
+    """
+
+    PARTIAL_TOKEN_PREFIX = "2fa_partial:"
+    PARTIAL_TOKEN_TTL = 5 * 60  # 5 minutes
+
+    @staticmethod
+    def setup(user: User) -> dict:
+        """
+        Initialise (or reset) 2FA for *user*.
+        Returns secret + QR provisioning URI.  Device is NOT yet active.
+        """
+        import pyotp
+        from .models import TOTPDevice
+
+        secret = pyotp.random_base32()
+
+        TOTPDevice.objects.filter(user=user).delete()  # reset any existing setup
+        TOTPDevice.objects.create(user=user, secret=secret, is_active=False)
+
+        totp = pyotp.TOTP(secret)
+        provisioning_uri = totp.provisioning_uri(
+            name=user.email or user.username,
+            issuer_name="FlowRoll",
+        )
+
+        return {
+            "secret": secret,
+            "provisioning_uri": provisioning_uri,
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def confirm(user: User, code: str) -> list[str]:
+        """
+        Verify the first TOTP code, activate the device, and generate recovery codes.
+        Returns plaintext recovery codes (shown once — never stored in plaintext).
+        Raises ValueError if the code is invalid or no setup is in progress.
+        """
+        import pyotp
+        from django.utils import timezone
+        from .models import TOTPDevice, RecoveryCode
+
+        try:
+            device = TOTPDevice.objects.get(user=user, is_active=False)
+        except TOTPDevice.DoesNotExist:
+            raise ValueError("No pending 2FA setup found. Call /2fa/setup/ first.")
+
+        totp = pyotp.TOTP(device.secret)
+        if not totp.verify(code, valid_window=1):
+            raise ValueError("Invalid TOTP code.")
+
+        device.is_active = True
+        device.confirmed_at = timezone.now()
+        device.save(update_fields=["is_active", "confirmed_at"])
+
+        return TwoFactorService._generate_recovery_codes(device)
+
+    @staticmethod
+    def issue_partial_token(user: User) -> str:
+        """
+        Issue a short-lived Redis token representing a partially-authenticated
+        user (credentials validated, 2FA not yet verified).
+        """
+        import secrets
+        from django.core.cache import cache
+
+        token = secrets.token_urlsafe(32)
+        cache.set(
+            f"{TwoFactorService.PARTIAL_TOKEN_PREFIX}{token}",
+            user.pk,
+            timeout=TwoFactorService.PARTIAL_TOKEN_TTL,
+        )
+        return token
+
+    @staticmethod
+    def challenge(partial_token: str, code: str) -> User:
+        """
+        Validate a TOTP code (or recovery code) against *partial_token*.
+        Returns the User on success; raises ValueError otherwise.
+        """
+        from django.core.cache import cache
+
+        cache_key = f"{TwoFactorService.PARTIAL_TOKEN_PREFIX}{partial_token}"
+        user_pk = cache.get(cache_key)
+        if user_pk is None:
+            raise ValueError("Partial token expired or invalid. Please log in again.")
+
+        try:
+            user = User.objects.get(pk=user_pk)
+        except User.DoesNotExist:
+            raise ValueError("User not found.")
+
+        device = getattr(user, "totp_device", None)
+        if device is None or not device.is_active:
+            raise ValueError("2FA is not active for this account.")
+
+        # Try TOTP first, then recovery codes
+        import pyotp
+
+        totp = pyotp.TOTP(device.secret)
+        if totp.verify(code, valid_window=1):
+            cache.delete(cache_key)
+            return user
+
+        if TwoFactorService._use_recovery_code(device, code):
+            cache.delete(cache_key)
+            return user
+
+        raise ValueError("Invalid code.")
+
+    @staticmethod
+    @transaction.atomic
+    def disable(user: User, code: str) -> None:
+        """Verify TOTP code and deactivate 2FA, deleting all codes."""
+        import pyotp
+        from .models import TOTPDevice
+
+        device = getattr(user, "totp_device", None)
+        if device is None or not device.is_active:
+            raise ValueError("2FA is not active for this account.")
+
+        totp = pyotp.TOTP(device.secret)
+        if not totp.verify(code, valid_window=1):
+            if not TwoFactorService._use_recovery_code(device, code):
+                raise ValueError("Invalid code.")
+
+        device.delete()
+
+    @staticmethod
+    @transaction.atomic
+    def regenerate_codes(user: User, code: str) -> list[str]:
+        """Verify TOTP code and generate a fresh set of recovery codes."""
+        import pyotp
+        from .models import RecoveryCode
+
+        device = getattr(user, "totp_device", None)
+        if device is None or not device.is_active:
+            raise ValueError("2FA is not active for this account.")
+
+        totp = pyotp.TOTP(device.secret)
+        if not totp.verify(code, valid_window=1):
+            raise ValueError("Invalid TOTP code.")
+
+        RecoveryCode.objects.filter(device=device).delete()
+        return TwoFactorService._generate_recovery_codes(device)
+
+    @staticmethod
+    def _generate_recovery_codes(device) -> list[str]:
+        import hashlib
+        import secrets
+        from .models import RecoveryCode
+
+        plaintext_codes = [
+            f"{secrets.token_hex(3).upper()}-{secrets.token_hex(3).upper()}"
+            for _ in range(RECOVERY_CODE_COUNT)
+        ]
+        RecoveryCode.objects.bulk_create([
+            RecoveryCode(
+                device=device,
+                code_hash=hashlib.sha256(code.encode()).hexdigest(),
+            )
+            for code in plaintext_codes
+        ])
+        return plaintext_codes
+
+    @staticmethod
+    def _use_recovery_code(device, code: str) -> bool:
+        """Try to consume a recovery code. Returns True if valid and unused."""
+        import hashlib
+        from django.utils import timezone
+        from .models import RecoveryCode
+
+        code_hash = hashlib.sha256(code.upper().encode()).hexdigest()
+        try:
+            record = RecoveryCode.objects.select_for_update().get(
+                device=device, code_hash=code_hash, is_used=False
+            )
+        except RecoveryCode.DoesNotExist:
+            return False
+
+        record.is_used = True
+        record.used_at = timezone.now()
+        record.save(update_fields=["is_used", "used_at"])
+        return True
+
+
+# ─── Account linking / unlinking ─────────────────────────────────────────────
+
+class AccountLinkingService:
+    """
+    Link and unlink external auth providers (Google, Apple, Phone) to an
+    existing user account.
+
+    Rules:
+    - A provider can only be linked once per account.
+    - Unlinking is blocked if it would leave the user with no way to log in
+      (no password, no other social account, no verified phone).
+    """
+
+    @staticmethod
+    @transaction.atomic
+    def link_google(user: User, google_id_token: str) -> None:
+        """Link a Google account to *user*. Raises ValueError on failure."""
+        from google.auth.exceptions import GoogleAuthError
+        from google.auth.transport.requests import Request as GoogleRequest
+        from google.oauth2.id_token import verify_oauth2_token
+        from allauth.socialaccount.models import SocialAccount
+
+        client_id = settings.GOOGLE_CLIENT_ID
+        if not client_id:
+            raise ValueError("Google OAuth is not configured.")
+
+        try:
+            idinfo = verify_oauth2_token(google_id_token, GoogleRequest(), client_id)
+        except (GoogleAuthError, ValueError) as exc:
+            raise ValueError(f"Invalid Google token: {exc}") from exc
+
+        google_uid = idinfo["sub"]
+
+        if SocialAccount.objects.filter(provider="google", uid=google_uid).exclude(user=user).exists():
+            raise ValueError("This Google account is already linked to a different user.")
+
+        SocialAccount.objects.get_or_create(
+            provider="google",
+            uid=google_uid,
+            defaults={"user": user, "extra_data": idinfo},
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def link_apple(user: User, identity_token: str) -> None:
+        """Link an Apple account to *user*. Raises ValueError on failure."""
+        from allauth.socialaccount.models import SocialAccount
+
+        # Reuse AppleAuthService for token verification
+        client_id = settings.APPLE_CLIENT_ID
+        if not client_id:
+            raise ValueError("Apple Sign-In is not configured.")
+
+        import jwt as pyjwt
+
+        try:
+            header = pyjwt.get_unverified_header(identity_token)
+        except pyjwt.DecodeError as exc:
+            raise ValueError(f"Invalid Apple token: {exc}") from exc
+
+        kid = header.get("kid")
+        if not kid:
+            raise ValueError("Apple token is missing the 'kid' header.")
+
+        public_key = AppleAuthService._get_public_key(kid)
+
+        try:
+            payload = pyjwt.decode(
+                identity_token,
+                key=public_key,
+                algorithms=["RS256"],
+                audience=client_id,
+                issuer=AppleAuthService.APPLE_ISS,
+            )
+        except pyjwt.ExpiredSignatureError:
+            raise ValueError("Apple token has expired.")
+        except pyjwt.InvalidTokenError as exc:
+            raise ValueError(f"Invalid Apple token: {exc}") from exc
+
+        apple_uid = payload["sub"]
+
+        if SocialAccount.objects.filter(provider="apple", uid=apple_uid).exclude(user=user).exists():
+            raise ValueError("This Apple account is already linked to a different user.")
+
+        SocialAccount.objects.get_or_create(
+            provider="apple",
+            uid=apple_uid,
+            defaults={"user": user, "extra_data": payload},
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def link_phone_verify(user: User, phone: str, otp: str) -> None:
+        """
+        Verify an OTP and link the phone number to *user*.
+        The OTP must have been previously sent via PhoneOTPService.send_otp().
+        """
+        from django.core.cache import cache
+        from .models import UserPhoneNumber
+
+        e164 = PhoneOTPService._normalise(phone)
+        otp_key = f"{PhoneOTPService.OTP_PREFIX}{e164}"
+        attempts_key = f"{PhoneOTPService.ATTEMPTS_PREFIX}{e164}"
+
+        stored_otp = cache.get(otp_key)
+        if stored_otp is None:
+            raise ValueError("OTP has expired. Please request a new one.")
+
+        attempts = cache.get(attempts_key, 0)
+        if attempts >= PhoneOTPService.MAX_ATTEMPTS:
+            cache.delete(otp_key)
+            cache.delete(attempts_key)
+            raise ValueError("Too many incorrect attempts. Please request a new code.")
+
+        if otp != stored_otp:
+            cache.incr(attempts_key)
+            raise ValueError("Incorrect OTP.")
+
+        cache.delete(otp_key)
+        cache.delete(attempts_key)
+
+        if UserPhoneNumber.objects.filter(phone=e164).exclude(user=user).exists():
+            raise ValueError("This phone number is already linked to a different account.")
+
+        UserPhoneNumber.objects.update_or_create(
+            user=user,
+            defaults={"phone": e164, "is_verified": True},
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def unlink(user: User, provider: str) -> None:
+        """
+        Unlink *provider* from *user*.  Raises ValueError if unlinking would
+        leave the user with no authentication method.
+        """
+        from allauth.socialaccount.models import SocialAccount
+        from .models import UserPhoneNumber
+
+        valid_providers = {"google", "apple", "phone"}
+        if provider not in valid_providers:
+            raise ValueError(f"Unknown provider '{provider}'. Choose from: {', '.join(valid_providers)}.")
+
+        # Check remaining methods after unlinking
+        has_password = user.has_usable_password()
+        social_count = SocialAccount.objects.filter(user=user).count()
+        has_phone = UserPhoneNumber.objects.filter(user=user, is_verified=True).exists()
+
+        if provider in {"google", "apple"}:
+            remaining_socials = social_count - 1
+        else:
+            remaining_socials = social_count
+
+        remaining_phone = not has_phone if provider == "phone" else has_phone
+
+        if not has_password and remaining_socials == 0 and not remaining_phone:
+            raise ValueError(
+                "Cannot unlink: this is your only login method. "
+                "Set a password or link another provider first."
+            )
+
+        if provider == "phone":
+            UserPhoneNumber.objects.filter(user=user).delete()
+        else:
+            SocialAccount.objects.filter(user=user, provider=provider).delete()
+
+    @staticmethod
+    def list_connections(user: User) -> dict:
+        """Return all connected auth methods for *user*."""
+        from allauth.socialaccount.models import SocialAccount
+        from .models import UserPhoneNumber
+
+        socials = {
+            s.provider: True
+            for s in SocialAccount.objects.filter(user=user)
+        }
+        phone_record = UserPhoneNumber.objects.filter(user=user, is_verified=True).first()
+
+        return {
+            "has_password": user.has_usable_password(),
+            "google": socials.get("google", False),
+            "apple": socials.get("apple", False),
+            "phone": phone_record.phone if phone_record else None,
+            "two_factor_enabled": (
+                hasattr(user, "totp_device") and user.totp_device.is_active
+            ),
+        }
+
+
+# ─── Email change ─────────────────────────────────────────────────────────────
+
+class EmailChangeService:
+    """
+    Allows users to change their email address with re-verification.
+
+    The pending change is stored in Redis (not persisted to DB) until the
+    user confirms it via the token sent to the new address.  On confirmation
+    the old address receives a security notification.
+    """
+
+    PENDING_PREFIX = "email_change:"
+    TTL_SECONDS = 24 * 60 * 60  # 24 hours
+
+    @staticmethod
+    def request_change(user: User, new_email: str) -> None:
+        """
+        Validate *new_email* and send a confirmation link.
+        Raises ValueError if the email is already in use.
+        """
+        import secrets
+        from django.core.cache import cache
+        from django.core.mail import send_mail
+
+        new_email = new_email.lower().strip()
+
+        if User.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
+            raise ValueError("That email address is already in use.")
+
+        token = secrets.token_urlsafe(32)
+        cache.set(
+            f"{EmailChangeService.PENDING_PREFIX}{token}",
+            {"user_pk": user.pk, "new_email": new_email},
+            timeout=EmailChangeService.TTL_SECONDS,
+        )
+
+        send_mail(
+            subject="FlowRoll — Confirm your new email address",
+            message=(
+                f"Hi {user.first_name or user.username},\n\n"
+                f"You requested to change your email to: {new_email}\n\n"
+                f"Confirm this change with the following token (valid 24 hours):\n\n"
+                f"  token: {token}\n\n"
+                "If you did not request this change, contact support immediately."
+            ),
+            from_email=None,
+            recipient_list=[new_email],
+            fail_silently=True,
+        )
+
+        # Security notification to old address
+        if user.email:
+            send_mail(
+                subject="FlowRoll — Email change requested",
+                message=(
+                    f"Hi {user.first_name or user.username},\n\n"
+                    f"A request to change your email to {new_email} was made.\n\n"
+                    "If this was not you, contact support immediately."
+                ),
+                from_email=None,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+
+    @staticmethod
+    @transaction.atomic
+    def confirm_change(token: str) -> User:
+        """
+        Validate *token* and apply the email change.
+        Returns the updated User.  Raises ValueError on invalid/expired tokens.
+        """
+        from django.core.cache import cache
+        from allauth.account.models import EmailAddress
+
+        cache_key = f"{EmailChangeService.PENDING_PREFIX}{token}"
+        data = cache.get(cache_key)
+        if data is None:
+            raise ValueError("Invalid or expired confirmation token.")
+
+        cache.delete(cache_key)
+
+        try:
+            user = User.objects.get(pk=data["user_pk"])
+        except User.DoesNotExist:
+            raise ValueError("User account no longer exists.")
+
+        new_email = data["new_email"]
+
+        if User.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
+            raise ValueError("That email address was taken while your confirmation was pending.")
+
+        user.email = new_email
+        user.username = new_email
+        user.save(update_fields=["email", "username"])
+
+        # Update allauth email record
+        EmailAddress.objects.filter(user=user).update(primary=False)
+        EmailAddress.objects.update_or_create(
+            user=user,
+            email=new_email,
+            defaults={"primary": True, "verified": True},
+        )
+
+        return user
+
+
+# ─── Profile completion (for social-login users) ──────────────────────────────
+
+class ProfileCompletionService:
+    """
+    Allow users who registered via a social provider with missing data
+    (e.g. Apple hid their email) to fill in their profile.
+    """
+
+    @staticmethod
+    @transaction.atomic
+    def complete(user: User, email: str = "", first_name: str = "", last_name: str = "") -> User:
+        """
+        Update *user*'s profile with the provided fields.
+        - *email*: only accepted if the user has no email yet (avoids silent hijack).
+        - *first_name* / *last_name*: always updatable.
+        """
+        from allauth.account.models import EmailAddress
+
+        updates = []
+
+        if first_name:
+            user.first_name = first_name
+            updates.append("first_name")
+
+        if last_name:
+            user.last_name = last_name
+            updates.append("last_name")
+
+        if email and not user.email:
+            email = email.lower().strip()
+            if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+                raise ValueError("That email address is already in use.")
+            user.email = email
+            updates.append("email")
+            EmailAddress.objects.get_or_create(
+                user=user,
+                email=email,
+                defaults={"primary": True, "verified": False},
+            )
+            EmailVerificationService.send_verification(user)
+
+        if updates:
+            user.save(update_fields=updates)
+
+        return user
