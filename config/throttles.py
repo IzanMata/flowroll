@@ -33,3 +33,33 @@ class PasswordResetRateThrottle(AnonRateThrottle):
     """
 
     scope = "password_reset"
+
+
+class ChangePasswordRateThrottle(UserRateThrottle):
+    """
+    Prevent brute-force of old_password on the change-password endpoint.
+    10 attempts per minute per authenticated user.
+    """
+
+    scope = "change_password"
+
+
+class EmailVerificationRateThrottle(AnonRateThrottle):
+    """
+    Limit verification token submission to slow token guessing.
+    20 attempts per minute per IP.
+    """
+
+    scope = "email_verification"
+
+
+class MagicLinkRateThrottle(AnonRateThrottle):
+    """Prevent email bombing on magic-link request endpoint. 5/minute per IP."""
+
+    scope = "magic_link"
+
+
+class PhoneOTPRateThrottle(AnonRateThrottle):
+    """Prevent SMS bombing on phone-OTP request endpoint. 5/minute per IP."""
+
+    scope = "phone_otp"

@@ -104,7 +104,7 @@ SIMPLE_JWT = {
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "core.authentication.BlocklistJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     # ── API versioning ────────────────────────────────────────────────────────
@@ -131,6 +131,10 @@ REST_FRAMEWORK = {
         "token_refresh": "20/minute",  # custom class in config/throttles.py
         "register": "10/minute",
         "password_reset": "5/minute",
+        "change_password": "10/minute",
+        "email_verification": "20/minute",
+        "magic_link": "5/minute",
+        "phone_otp": "5/minute",
     },
 }
 
@@ -222,6 +226,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ─── Google OAuth ─────────────────────────────────────────────────────────────
 # Set GOOGLE_CLIENT_ID in your .env file (obtain from Google Cloud Console).
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+
+# ─── Apple Sign-In ────────────────────────────────────────────────────────────
+# Service ID (web) or Bundle ID (native app) registered in Apple Developer Portal.
+APPLE_CLIENT_ID = os.environ.get("APPLE_CLIENT_ID", "")
+
+# ─── Twilio (Phone OTP) ───────────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")
 
 # ─── Stripe Connect Express ───────────────────────────────────────────────────
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
