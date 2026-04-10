@@ -63,3 +63,13 @@ class PhoneOTPRateThrottle(AnonRateThrottle):
     """Prevent SMS bombing on phone-OTP request endpoint. 5/minute per IP."""
 
     scope = "phone_otp"
+
+
+class RegisterRateThrottle(AnonRateThrottle):
+    """
+    Dedicated throttle for the registration endpoint.
+    10 registrations per minute per IP — separate scope from login so
+    tuning one does not affect the other.
+    """
+
+    scope = "register"
