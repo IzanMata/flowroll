@@ -73,6 +73,9 @@ class TOTPDevice(models.Model):
     )
     secret = models.CharField(max_length=64, help_text="Base32 TOTP secret")
     is_active = models.BooleanField(default=False)
+    # Stores the last successfully used TOTP counter (floor(epoch/30)) to
+    # prevent code reuse within the 90-second validity window.
+    last_otp_counter = models.BigIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
 
