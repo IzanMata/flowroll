@@ -521,9 +521,12 @@ class PhoneOTPService:
     @staticmethod
     def send_otp(phone: str) -> None:
         """
-        Generate a 6-digit OTP, store it in Redis, and send it via Twilio SMS.
+        Generate a 6-digit OTP, store its SHA-256 hash in Redis, and send the
+        plaintext via Twilio SMS.  Storing a hash means a Redis breach does not
+        expose usable codes.
         Raises ValueError for invalid phone numbers or Twilio errors.
         """
+        import hashlib
         import secrets
         from django.core.cache import cache
         from twilio.rest import Client
@@ -533,8 +536,9 @@ class PhoneOTPService:
 
         # Cryptographically random 6-digit code (100000–999999)
         otp = str(100000 + secrets.randbelow(900000))
+        otp_hash = hashlib.sha256(otp.encode()).hexdigest()
 
-        cache.set(f"{PhoneOTPService.OTP_PREFIX}{e164}", otp, timeout=PhoneOTPService.OTP_TTL)
+        cache.set(f"{PhoneOTPService.OTP_PREFIX}{e164}", otp_hash, timeout=PhoneOTPService.OTP_TTL)
         cache.set(f"{PhoneOTPService.ATTEMPTS_PREFIX}{e164}", 0, timeout=PhoneOTPService.OTP_TTL)
 
         try:
@@ -555,8 +559,10 @@ class PhoneOTPService:
 
         - Max-attempts guard: after 3 wrong attempts the code is invalidated.
         - Single-use: code deleted from Redis on successful verification.
+        - Comparison is done against the stored SHA-256 hash (never plaintext).
         - New users are created with the phone number as their identifier.
         """
+        import hashlib
         from django.core.cache import cache
         from .models import UserPhoneNumber
 
@@ -564,8 +570,8 @@ class PhoneOTPService:
         otp_key = f"{PhoneOTPService.OTP_PREFIX}{e164}"
         attempts_key = f"{PhoneOTPService.ATTEMPTS_PREFIX}{e164}"
 
-        stored_otp = cache.get(otp_key)
-        if stored_otp is None:
+        stored_hash = cache.get(otp_key)
+        if stored_hash is None:
             raise ValueError("OTP has expired or was never requested. Please request a new code.")
 
         attempts = cache.get(attempts_key, 0)
@@ -574,7 +580,7 @@ class PhoneOTPService:
             cache.delete(attempts_key)
             raise ValueError("Too many incorrect attempts. Please request a new code.")
 
-        if otp != stored_otp:
+        if hashlib.sha256(otp.encode()).hexdigest() != stored_hash:
             cache.incr(attempts_key)
             raise ValueError("Incorrect OTP.")
 
@@ -776,6 +782,8 @@ class TwoFactorService:
 
     PARTIAL_TOKEN_PREFIX = "2fa_partial:"
     PARTIAL_TOKEN_TTL = 5 * 60  # 5 minutes
+    PARTIAL_ATTEMPTS_PREFIX = "2fa_attempts:"
+    MAX_CHALLENGE_ATTEMPTS = 5  # max wrong codes before the partial_token is voided
 
     @staticmethod
     def setup(user: User) -> dict:
@@ -819,8 +827,11 @@ class TwoFactorService:
         except TOTPDevice.DoesNotExist:
             raise ValueError("No pending 2FA setup found. Call /2fa/setup/ first.")
 
-        totp = pyotp.TOTP(device.secret)
-        if not totp.verify(code, valid_window=1):
+        try:
+            valid = TwoFactorService._verify_totp_code(device, code)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+        if not valid:
             raise ValueError("Invalid TOTP code.")
 
         device.is_active = True
@@ -855,9 +866,19 @@ class TwoFactorService:
         from django.core.cache import cache
 
         cache_key = f"{TwoFactorService.PARTIAL_TOKEN_PREFIX}{partial_token}"
+        attempts_key = f"{TwoFactorService.PARTIAL_ATTEMPTS_PREFIX}{partial_token}"
+
         user_pk = cache.get(cache_key)
         if user_pk is None:
             raise ValueError("Partial token expired or invalid. Please log in again.")
+
+        # Brute-force guard: distributed attackers can each hit the IP throttle
+        # limit, so we also keep a per-token attempt counter in Redis.
+        attempts = cache.get(attempts_key, 0)
+        if attempts >= TwoFactorService.MAX_CHALLENGE_ATTEMPTS:
+            cache.delete(cache_key)
+            cache.delete(attempts_key)
+            raise ValueError("Too many failed attempts. Please log in again.")
 
         try:
             user = User.objects.get(pk=user_pk)
@@ -869,17 +890,26 @@ class TwoFactorService:
             raise ValueError("2FA is not active for this account.")
 
         # Try TOTP first, then recovery codes
-        import pyotp
-
-        totp = pyotp.TOTP(device.secret)
-        if totp.verify(code, valid_window=1):
+        try:
+            totp_valid = TwoFactorService._verify_totp_code(device, code)
+        except ValueError as exc:
+            # Code already used — clear the partial token to force re-login
             cache.delete(cache_key)
+            cache.delete(attempts_key)
+            raise ValueError(str(exc)) from exc
+
+        if totp_valid:
+            cache.delete(cache_key)
+            cache.delete(attempts_key)
             return user
 
         if TwoFactorService._use_recovery_code(device, code):
             cache.delete(cache_key)
+            cache.delete(attempts_key)
             return user
 
+        # Wrong code — increment attempt counter (TTL matches partial token)
+        cache.set(attempts_key, attempts + 1, timeout=TwoFactorService.PARTIAL_TOKEN_TTL)
         raise ValueError("Invalid code.")
 
     @staticmethod
@@ -893,8 +923,11 @@ class TwoFactorService:
         if device is None or not device.is_active:
             raise ValueError("2FA is not active for this account.")
 
-        totp = pyotp.TOTP(device.secret)
-        if not totp.verify(code, valid_window=1):
+        try:
+            totp_valid = TwoFactorService._verify_totp_code(device, code)
+        except ValueError:
+            totp_valid = False
+        if not totp_valid:
             if not TwoFactorService._use_recovery_code(device, code):
                 raise ValueError("Invalid code.")
 
@@ -911,12 +944,49 @@ class TwoFactorService:
         if device is None or not device.is_active:
             raise ValueError("2FA is not active for this account.")
 
-        totp = pyotp.TOTP(device.secret)
-        if not totp.verify(code, valid_window=1):
+        try:
+            totp_valid = TwoFactorService._verify_totp_code(device, code)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+        if not totp_valid:
             raise ValueError("Invalid TOTP code.")
 
         RecoveryCode.objects.filter(device=device).delete()
         return TwoFactorService._generate_recovery_codes(device)
+
+    @staticmethod
+    def _verify_totp_code(device, code: str) -> bool:
+        """
+        Verify *code* against the device's TOTP secret with reuse prevention.
+
+        Stores the counter value (floor(epoch/30)) of the last accepted code.
+        Rejects any code whose counter is ≤ the stored value so the same OTP
+        cannot be replayed within its 90-second validity window.
+
+        Returns True on success, False on invalid code, raises ValueError on reuse.
+        """
+        import time
+        import pyotp
+
+        totp = pyotp.TOTP(device.secret)
+        if not totp.verify(code, valid_window=1):
+            return False
+
+        # Determine which counter slot the accepted code belongs to
+        now_counter = int(time.time()) // 30
+        used_counter = now_counter  # default to current slot
+        for offset in (-1, 0, 1):
+            if totp.at(for_time=(now_counter + offset) * 30) == code:
+                used_counter = now_counter + offset
+                break
+
+        # Reject if this counter was already consumed (reuse within validity window)
+        if device.last_otp_counter is not None and device.last_otp_counter >= used_counter:
+            raise ValueError("This code has already been used. Please wait for the next code.")
+
+        device.last_otp_counter = used_counter
+        device.save(update_fields=["last_otp_counter"])
+        return True
 
     @staticmethod
     def _generate_recovery_codes(device) -> list[str]:
@@ -1054,7 +1124,9 @@ class AccountLinkingService:
         """
         Verify an OTP and link the phone number to *user*.
         The OTP must have been previously sent via PhoneOTPService.send_otp().
+        Comparison is done against the stored SHA-256 hash (never plaintext).
         """
+        import hashlib
         from django.core.cache import cache
         from .models import UserPhoneNumber
 
@@ -1062,8 +1134,8 @@ class AccountLinkingService:
         otp_key = f"{PhoneOTPService.OTP_PREFIX}{e164}"
         attempts_key = f"{PhoneOTPService.ATTEMPTS_PREFIX}{e164}"
 
-        stored_otp = cache.get(otp_key)
-        if stored_otp is None:
+        stored_hash = cache.get(otp_key)
+        if stored_hash is None:
             raise ValueError("OTP has expired. Please request a new one.")
 
         attempts = cache.get(attempts_key, 0)
@@ -1072,7 +1144,7 @@ class AccountLinkingService:
             cache.delete(attempts_key)
             raise ValueError("Too many incorrect attempts. Please request a new code.")
 
-        if otp != stored_otp:
+        if hashlib.sha256(otp.encode()).hexdigest() != stored_hash:
             cache.incr(attempts_key)
             raise ValueError("Incorrect OTP.")
 

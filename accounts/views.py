@@ -11,7 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from config.throttles import (ChangePasswordRateThrottle,
                               EmailVerificationRateThrottle, LoginRateThrottle,
                               MagicLinkRateThrottle, PasswordResetRateThrottle,
-                              PhoneOTPRateThrottle)
+                              PhoneOTPRateThrottle, RegisterRateThrottle)
 
 from .serializers import (AppleAuthSerializer, ChangePasswordSerializer,
                            CompleteProfileSerializer, EmailChangeConfirmSerializer,
@@ -31,6 +31,25 @@ from .services import (AccountLinkingService, AppleAuthService,
                        PasswordResetService, PhoneOTPService,
                        ProfileCompletionService, RegistrationService,
                        SessionService, TwoFactorService)
+
+
+def _respond_for_user(user, request, login_method: str):
+    """
+    Final step of every auth flow: check 2FA before issuing full JWT tokens.
+
+    If the user has an active TOTP device, return a partial_token challenge
+    instead of a full JWT pair — regardless of which auth method was used.
+    This prevents social/passwordless logins from bypassing 2FA.
+    """
+    device = getattr(user, "totp_device", None)
+    if device and device.is_active:
+        partial_token = TwoFactorService.issue_partial_token(user)
+        # Log as pending (credentials validated but 2FA not yet satisfied)
+        if request is not None:
+            LoginEventService.log(user=user, method=login_method, request=request, success=False)
+        return Response({"requires_2fa": True, "partial_token": partial_token}, status=200)
+
+    return Response(_tokens_for_user(user, request, login_method), status=200)
 
 
 def _tokens_for_user(user, request=None, login_method: str = "email") -> dict:
@@ -203,6 +222,7 @@ class PasswordResetConfirmView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -227,7 +247,7 @@ class RegisterView(APIView):
     """
 
     permission_classes = [AllowAny]
-    throttle_classes = [LoginRateThrottle]
+    throttle_classes = [RegisterRateThrottle]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -265,7 +285,7 @@ class GoogleAuthView(APIView):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user, request, "google"), status=200)
+        return _respond_for_user(user, request, "google")
 
 
 class AppleAuthView(APIView):
@@ -290,7 +310,7 @@ class AppleAuthView(APIView):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user, request, "apple"), status=200)
+        return _respond_for_user(user, request, "apple")
 
 
 class MagicLinkRequestView(APIView):
@@ -335,7 +355,7 @@ class MagicLinkVerifyView(APIView):
             user = MagicLinkService.verify_link(serializer.validated_data["token"])
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user, request, "magic_link"), status=200)
+        return _respond_for_user(user, request, "magic_link")
 
 
 class PhoneOTPRequestView(APIView):
@@ -381,7 +401,7 @@ class PhoneOTPVerifyView(APIView):
             user = PhoneOTPService.verify_otp(data["phone"], data["otp"])
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response(_tokens_for_user(user, request, "phone"), status=200)
+        return _respond_for_user(user, request, "phone")
 
 
 # ─── Two-Factor Authentication ────────────────────────────────────────────────
