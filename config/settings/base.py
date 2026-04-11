@@ -48,6 +48,12 @@ INSTALLED_APPS = [
     # Local — placeholders
     "competitions",
     "stats",
+    # Payments
+    "payments",
+    # Notifications
+    "notifications",
+    # Dashboard analytics
+    "dashboard",
 ]
 
 # L-2 fix: SecurityMiddleware MUST be first so HSTS / SSL redirect apply to
@@ -98,7 +104,7 @@ SIMPLE_JWT = {
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "core.authentication.BlocklistJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     # ── API versioning ────────────────────────────────────────────────────────
@@ -125,6 +131,10 @@ REST_FRAMEWORK = {
         "token_refresh": "20/minute",  # custom class in config/throttles.py
         "register": "10/minute",
         "password_reset": "5/minute",
+        "change_password": "10/minute",
+        "email_verification": "20/minute",
+        "magic_link": "5/minute",
+        "phone_otp": "5/minute",
     },
 }
 
@@ -229,3 +239,22 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 # Stripe configuration
 STRIPE_CURRENCY = "usd"
 STRIPE_AUTO_PAYOUT = True
+
+# ─── Apple Sign-In ────────────────────────────────────────────────────────────
+# Service ID (web) or Bundle ID (native app) registered in Apple Developer Portal.
+APPLE_CLIENT_ID = os.environ.get("APPLE_CLIENT_ID", "")
+
+# ─── Twilio (Phone OTP) ───────────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")
+
+# ─── Stripe Connect Express ───────────────────────────────────────────────────
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+# Pin the API version to avoid breaking changes on Stripe SDK upgrades.
+STRIPE_API_VERSION = "2024-06-20"
+# Marketplace commission: % of each payment kept by the platform.
+# e.g. 10.0 means FlowRoll keeps 10 % and the academy receives 90 % (minus Stripe fees).
+STRIPE_PLATFORM_FEE_PERCENT = float(os.environ.get("STRIPE_PLATFORM_FEE_PERCENT", "10.0"))

@@ -1,15 +1,18 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from academies.models import Academy
 from core.mixins import AcademyFilterMixin, SwaggerSafeMixin
 from core.models import AcademyMembership
-from core.permissions import IsAcademyMember
+from core.permissions import IsAcademyMember, IsAcademyProfessor
 
 from .models import AthleteProfile
-from .serializers import AthleteProfileSerializer
+from .serializers import AthleteProfileSerializer, PromotionReadinessSerializer
+from .services import PromotionService
 
 
 class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.ModelViewSet):
@@ -60,6 +63,12 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
                 return [IsAuthenticated()]
             return [IsAcademyMember()]
 
+        # Promotion list requires professor/owner; detail requires member.
+        if self.action == "promotion_readiness_list":
+            return [IsAcademyProfessor()]
+        if self.action == "promotion_readiness_detail":
+            return [IsAcademyMember()]
+
         # For read operations, require academy membership only if academy is specified
         academy_id = self.kwargs.get("academy_pk") or self.request.query_params.get("academy")
         if academy_id:
@@ -100,3 +109,41 @@ class AthleteProfileViewSet(SwaggerSafeMixin, AcademyFilterMixin, viewsets.Model
                     "You do not have permission to modify this athlete profile."
                 )
         return obj
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="promotion-readiness",
+        permission_classes=[IsAcademyProfessor],
+    )
+    def promotion_readiness_list(self, request):
+        """
+        Return promotion readiness for every athlete in the academy.
+        Requires professor or owner role.
+        GET /api/v1/athletes/promotion-readiness/?academy=<id>
+        """
+        academy_id = self.get_academy_id()
+        if not academy_id:
+            return Response(
+                {"detail": "academy query param is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        results = PromotionService.get_academy_readiness(academy_id)
+        serializer = PromotionReadinessSerializer(results, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="promotion-readiness",
+        permission_classes=[IsAcademyMember],
+    )
+    def promotion_readiness_detail(self, request, pk=None):
+        """
+        Return promotion readiness for a single athlete.
+        Members can view their own; professors can view any athlete in their academy.
+        GET /api/v1/athletes/<id>/promotion-readiness/?academy=<id>
+        """
+        obj = self.get_object()
+        readiness = PromotionService.evaluate(obj)
+        return Response(PromotionReadinessSerializer(readiness).data)

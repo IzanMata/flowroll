@@ -23,6 +23,9 @@ class MembershipPlan(TenantMixin, TimestampMixin):
     # Max classes per plan period. None means unlimited.
     class_limit = models.PositiveIntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    # Stripe integration
+    stripe_product_id = models.CharField(max_length=100, blank=True)
+    stripe_price_id = models.CharField(max_length=100, blank=True, db_index=True)
 
     class Meta:
         ordering = ["name"]
@@ -54,6 +57,10 @@ class Subscription(TimestampMixin):
         max_length=20, choices=Status.choices, default=Status.ACTIVE
     )
     classes_remaining = models.PositiveIntegerField(null=True, blank=True)
+    # Stripe integration — null for CLASS_PASS/DROP_IN (one-time payments)
+    stripe_subscription_id = models.CharField(
+        max_length=100, blank=True, null=True, db_index=True
+    )
 
     class Meta:
         ordering = ["-start_date"]
@@ -110,6 +117,8 @@ class DojoTabTransaction(TenantMixin, TimestampMixin):
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     description = models.CharField(max_length=255, blank=True)
     billed = models.BooleanField(default=False)
+    # Stripe integration — links this transaction to a Stripe PaymentIntent
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -200,6 +209,8 @@ class SeminarRegistration(TimestampMixin):
         max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
     )
     notes = models.TextField(blank=True)
+    # Stripe integration — links to the PaymentIntent used to pay for this registration
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, db_index=True)
 
     class Meta:
         unique_together = ("seminar", "athlete")

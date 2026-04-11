@@ -105,6 +105,12 @@ class CheckInService:
         AthleteProfile.objects.filter(pk=athlete.pk).update(
             mat_hours=F("mat_hours") + mat_hours_delta
         )
+
+        # Fire milestone notification if this check-in lands on a threshold.
+        total = CheckIn.objects.filter(athlete=athlete).count()
+        from notifications.services import NotificationTriggers
+        NotificationTriggers.on_checkin(athlete, total)
+
         return check_in
 
 

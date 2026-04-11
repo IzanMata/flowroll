@@ -54,6 +54,8 @@ class AchievementService:
                     athlete=athlete, achievement=achievement
                 )
                 newly_awarded.append(earned)
+                from notifications.services import NotificationTriggers
+                NotificationTriggers.on_achievement_unlocked(earned)
 
         return newly_awarded
 
@@ -73,6 +75,10 @@ class AchievementService:
         )
         if not created:
             raise ValueError(f"{athlete} has already earned '{achievement}'.")
+
+        from notifications.services import NotificationTriggers
+        NotificationTriggers.on_achievement_unlocked(earned)
+
         return earned
 
     @staticmethod
