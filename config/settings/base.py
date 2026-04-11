@@ -216,3 +216,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ─── Google OAuth ─────────────────────────────────────────────────────────────
 # Set GOOGLE_CLIENT_ID in your .env file (obtain from Google Cloud Console).
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+
+# ─── Stripe Payment Processing ────────────────────────────────────────────────
+# Set these in your .env file:
+# STRIPE_PUBLIC_KEY=pk_test_... (for frontend)
+# STRIPE_SECRET_KEY=sk_test_... (for backend)
+# STRIPE_WEBHOOK_SECRET=whsec_... (for webhook verification)
+STRIPE_PUBLIC_KEY = os.environ.get("STRIPE_PUBLIC_KEY", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+# Stripe configuration
+STRIPE_CURRENCY = "usd"
+STRIPE_AUTO_PAYOUT = True

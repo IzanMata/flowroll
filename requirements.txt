@@ -30,6 +30,9 @@ whitenoise==6.9.0
 qrcode==8.0
 Pillow==11.1.0
 
+# ─── Payment processing ───────────────────────────────────────────────────────
+stripe==11.2.0
+
 # ─── Dev / lint / test ────────────────────────────────────────────────────────
 python-dateutil==2.9.0.post0  # ISO date parsing in security tests
 black==25.9.0
